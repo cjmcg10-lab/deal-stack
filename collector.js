@@ -9,8 +9,8 @@
 'use strict';
 const E = require('./engine.js');
 
-const HUB_URL = (process.env.HUB_URL || '').replace(/\/+$/, '');
-const HUB_KEY = process.env.HUB_KEY || '';
+const HUB_URL = (process.env.HUB_URL || '').trim().replace(/\/+$/, '');
+const HUB_KEY = (process.env.HUB_KEY || '').trim();
 const DRY_RUN = !HUB_URL || process.argv.includes('--dry-run');
 const UA_TOKEN = 'DealStackBot';
 const UA = 'Mozilla/5.0 (compatible; DealStackBot/1.0; personal coupon finder that follows robots.txt)';
@@ -382,14 +382,32 @@ async function pool(items, n, fn) {
   return out;
 }
 
+// Confirms the hub address and key before spending minutes collecting.
+async function checkHub() {
+  let host;
+  try { host = new URL(HUB_URL).host; } catch (e) {
+    throw new Error('HUB_URL is not a web address. It should look like https://deal-stack.yourname.workers.dev');
+  }
+  let res;
+  try { res = await fetch(HUB_URL + '/api/ping'); } catch (e) {
+    throw new Error('Could not connect to ' + host + ' (' + ((e.cause && e.cause.code) || e.message) + '). Check the HUB_URL secret.');
+  }
+  const text = await res.text();
+  let ping = null;
+  try { ping = JSON.parse(text); } catch (e) { }
+  if (!ping || ping.app !== 'deal-stack') {
+    throw new Error(host + ' answered (HTTP ' + res.status + ') but it is not your Deal Stack hub. It sent: ' + text.slice(0, 80).replace(/\s+/g, ' ') + ' ... Check the HUB_URL secret.');
+  }
+  if (!ping.db) throw new Error('Your hub at ' + host + ' is up but its database is not connected.');
+  if (!ping.key) throw new Error('Your hub at ' + host + ' has no APP_KEY secret.');
+  const auth = await fetch(HUB_URL + '/api/domains', { headers: { 'x-hub-key': HUB_KEY } });
+  if (auth.status === 401) throw new Error('Your hub at ' + host + ' rejected the key. Make HUB_KEY on GitHub match APP_KEY on Cloudflare exactly.');
+  console.log('Connected to your hub at ' + host + '.');
+}
+
 async function main() {
   if (DRY_RUN) console.log('Dry run: nothing will be sent (HUB_URL not set or --dry-run).');
-  else {
-    const ping = await fetch(HUB_URL + '/api/ping').then(r => r.json()).catch(() => null);
-    if (!ping || !ping.ok) throw new Error('Could not reach your hub at ' + HUB_URL + '. Check the HUB_URL secret.');
-    if (!ping.db) throw new Error('Your hub is up but its database is not connected. Add the D1 binding named DB in Cloudflare and redeploy.');
-    if (!ping.key) throw new Error('Your hub has no APP_KEY set. Add it in Cloudflare and redeploy.');
-  }
+  else await checkHub();
   const only = process.argv.find(a => a.startsWith('--only='));
   let stores = E.BRANDS.filter(b => !b.pseudo && b.url);
   if (only) { const list = only.slice(7).split(','); stores = stores.filter(b => list.includes(b.domain)); }
