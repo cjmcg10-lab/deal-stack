@@ -10,7 +10,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '2.0.0';
   var DAY = 86400000;
 
   /* ------------------------------------------------------------------ */
@@ -814,6 +814,79 @@
 
   function num(s) { return s == null ? null : parseFloat(String(s).replace(/,/g, '')); }
 
+  function readValues(t) {
+    var p = {};
+    var m;
+      // Free shipping (kept apart so its threshold isn't read as the coupon's minimum)
+      var fs = /free\s+(?:standard\s+|ground\s+|2-day\s+)?shipping(?:\s+(?:on|for|with)\s+(?:all\s+)?(?:orders?|purchases?)?\s*(?:of\s+|over\s+|above\s+|\$)?\s*\$?\s?(\d{1,4})\s?\+?)?|ships?\s+free/i.exec(t);
+      if (fs) { p.freeShip = true; if (fs[1]) p.freeShipMin = num(fs[1]); }
+      var noShip = t.replace(/free\s+(?:standard\s+|ground\s+|2-day\s+)?shipping(?:\s+(?:on|for|with)\s+(?:all\s+)?(?:orders?|purchases?)?\s*(?:of\s+|over\s+|above\s+)?\s*\$?\s?\d{0,4}\s?\+?)?/gi, ' ');
+
+      // Cash back (card offers, portals)
+      m = /(?:up to\s+)?(\d{1,2}(?:\.\d+)?)\s?%\s*(?:cash\s*back|back\b|in rewards|in cash back|rewards\b)/i.exec(noShip);
+      if (m) { p.cashPct = num(m[1]); if (/up to/i.test(m[0])) p.upTo = true; }
+      m = /\$\s?(\d{1,4}(?:\.\d{2})?)\s*(?:cash\s*back|back\b|statement credit|in rewards)/i.exec(noShip);
+      if (m) p.cashAmt = num(m[1]);
+
+      // Percent off
+      m = /(up to\s+|extra\s+|additional\s+|an extra\s+|an additional\s+)?(\d{1,2}(?:\.\d+)?)\s?%\s*(?:off|discount)/i.exec(noShip) ||
+          /save\s+(up to\s+|an?\s+extra\s+|an?\s+additional\s+|extra\s+)?(\d{1,2}(?:\.\d+)?)\s?%/i.exec(noShip) ||
+          /(extra\s+|additional\s+)(\d{1,2})\s?%/i.exec(noShip);
+      if (m) {
+        p.pct = num(m[2]);
+        if (m[1] && /up to/i.test(m[1])) p.upTo = true;
+        if (m[1] && /extra|additional/i.test(m[1])) p.extra = true;
+        if (!p.upTo && /up to\s*$/i.test(noShip.slice(Math.max(0, m.index - 8), m.index))) p.upTo = true;
+      }
+
+      if (p.pct == null && /\bhalf[- ]off\b|\bhalf[- ]price\b/i.test(noShip)) p.pct = 50;
+      // "30%-50% off": a range; the low end is what you can count on.
+      var rg = /(\d{1,2})\s?%?\s*(?:-|–|to)\s*(\d{1,2})\s?%\s*off/i.exec(noShip);
+      if (rg && num(rg[2]) > num(rg[1])) { p.pct = num(rg[1]); p.pctHigh = num(rg[2]); p.upTo = false; }
+      // "Extra 10% off + 30% off sitewide": the two discounts stack.
+      var st = /(\d{1,2})\s?%\s*off\s*(?:\+|\bplus\b|\band\b)\s*(?:an?\s+)?(?:extra\s+|additional\s+)?(\d{1,2})\s?%\s*off/i.exec(noShip);
+      if (st && !/\bor\b/i.test(st[0])) {
+        var a1 = num(st[1]), a2 = num(st[2]);
+        p.pct = Math.round((1 - (1 - a1 / 100) * (1 - a2 / 100)) * 100);
+        p.stackText = Math.max(a1, a2) + '% + extra ' + Math.min(a1, a2) + '% off';
+        p.upTo = false;
+      }
+      var tiers = tiersIn(noShip);
+      if (tiers.length >= 2) { p.tiers = tiers; p.amt = tiers[tiers.length - 1].amt; p.minSpend = tiers[0].min; }
+      // Caps: "50% off, up to $15", "Max $30 back", "maximum of $10"
+      m = /%[^.$]{0,40}?\bup to\s+\$\s?(\d{1,4})/i.exec(noShip) || /\bmax(?:imum)?\.?\s*(?:of\s*)?\$\s?(\d{1,4})(?:\.\d{2})?\s*(?:back|cash back|off|savings|discount|in rewards)?/i.exec(noShip) || /\bup to\s+\$\s?(\d{1,4})\s*(?:back|cash back|in rewards)/i.exec(noShip);
+      if (m) p.cap = num(m[1]);
+      // "off a drink", "off one item": a single item, not the whole order
+      p.singleItem = /\boff\s+(?:a|an|one|any one|1|your next|a single)\s+(?!order\b|purchase\b|online order\b|qualifying order\b)[a-z]/i.test(noShip) || /\b(?:free|complimentary)\s+(?:drink|item|entree|appetizer|dessert|side|coffee|gift)\b/i.test(noShip);
+
+      // Dollars off, and "$X off $Y"
+      m = /\$\s?(\d{1,4}(?:\.\d{2})?)\s*off(?:\s+(?:your\s+|an?\s+|any\s+)?(?:(?:orders?|purchases?)\s+(?:of\s+|over\s+)?)?\$\s?(\d{1,4})\s?\+?)?/i.exec(noShip) ||
+          /save\s+(?:up\s+to\s+|an\s+extra\s+|an\s+additional\s+|extra\s+)?\$\s?(\d{1,4}(?:\.\d{2})?)(?:\s+(?:on|when you spend|with)\s+(?:orders?\s+(?:of\s+)?)?\$\s?(\d{1,4}))?/i.exec(noShip) ||
+          /\$\s?(\d{1,4})\s*(?:discount|savings|instant savings)/i.exec(noShip);
+      if (m) {
+        p.amt = num(m[1]);
+        if (m[2]) p.minSpend = num(m[2]);
+      }
+
+      // Minimum spend
+      if (p.minSpend == null) {
+        m = /(?:orders?|purchases?)\s+(?:of\s+)?\$\s?(\d{1,4})\s?\+/i.exec(noShip) ||
+            /(?:orders?|purchases?|subtotal)\s+(?:of\s+|over\s+|above\s+|totaling\s+|totalling\s+|exceeding\s+)\$\s?(\d{1,4})/i.exec(noShip) ||
+            /(?:when|if)\s+you\s+spend\s+(?:at least\s+)?\$\s?(\d{1,4})/i.exec(noShip) ||
+            /\bspend\s+(?:at least\s+)?\$\s?(\d{1,4})/i.exec(noShip) ||
+            /(?:minimum|min\.?)\s+(?:purchase|order|spend|subtotal)?\s*(?:of\s+)?\$\s?(\d{1,4})/i.exec(noShip) ||
+            /\bon\s+\$\s?(\d{1,4})\s?\+/i.exec(noShip) ||
+            /\$\s?(\d{1,4})\s?\+\s*(?:orders?|purchases?|spend)/i.exec(noShip) ||
+            /\$\s?(\d{1,4})\s+(?:or more|minimum)/i.exec(noShip) ||
+            /(?:%|\boff)\s+\$\s?(\d{1,4})\s?\+/i.exec(noShip);
+        if (m) p.minSpend = num(m[1]);
+      }
+
+    p.noShip = noShip;
+    p.bogoV = /\bbogo\b|buy\s+(?:one|1|2|two),?\s+get\s+(?:one|1|2|two)/i.test(t);
+    return p;
+  }
+
   function parseTerms(title, terms, opts) {
     opts = opts || {};
     var full = clean((title || '') + ' . ' + (terms || ''));
@@ -821,60 +894,30 @@
     var p = {};
     var m;
 
-    // Free shipping (kept apart so its threshold isn't read as the coupon's minimum)
-    var fs = /free\s+(?:standard\s+|ground\s+|2-day\s+)?shipping(?:\s+(?:on|for|with)\s+(?:all\s+)?(?:orders?|purchases?)?\s*(?:of\s+|over\s+|above\s+|\$)?\s*\$?\s?(\d{1,4})\s?\+?)?|ships?\s+free/i.exec(t);
-    if (fs) { p.freeShip = true; if (fs[1]) p.freeShipMin = num(fs[1]); }
-    var noShip = t.replace(/free\s+(?:standard\s+|ground\s+|2-day\s+)?shipping(?:\s+(?:on|for|with)\s+(?:all\s+)?(?:orders?|purchases?)?\s*(?:of\s+|over\s+|above\s+)?\s*\$?\s?\d{0,4}\s?\+?)?/gi, ' ');
-
-    // Cash back (card offers, portals)
-    m = /(?:up to\s+)?(\d{1,2}(?:\.\d+)?)\s?%\s*(?:cash\s*back|back\b|in rewards|in cash back|rewards\b)/i.exec(noShip);
-    if (m) { p.cashPct = num(m[1]); if (/up to/i.test(m[0])) p.upTo = true; }
-    m = /\$\s?(\d{1,4}(?:\.\d{2})?)\s*(?:cash\s*back|back\b|statement credit|in rewards)/i.exec(noShip);
-    if (m) p.cashAmt = num(m[1]);
-
-    // Percent off
-    m = /(up to\s+|extra\s+|additional\s+|an extra\s+|an additional\s+)?(\d{1,2}(?:\.\d+)?)\s?%\s*(?:off|discount)/i.exec(noShip) ||
-        /save\s+(up to\s+|an?\s+extra\s+|an?\s+additional\s+|extra\s+)?(\d{1,2}(?:\.\d+)?)\s?%/i.exec(noShip) ||
-        /(extra\s+|additional\s+)(\d{1,2})\s?%/i.exec(noShip);
-    if (m) {
-      p.pct = num(m[2]);
-      if (m[1] && /up to/i.test(m[1])) p.upTo = true;
-      if (m[1] && /extra|additional/i.test(m[1])) p.extra = true;
-      if (!p.upTo && /up to\s*$/i.test(noShip.slice(Math.max(0, m.index - 8), m.index))) p.upTo = true;
+    // What the deal is worth comes from its own headline; the fine print is only used
+    // when the headline doesn't say (fine print often mentions other offers too).
+    var fromTitle = readValues(clean(title || ''));
+    var hasV = fromTitle.pct || fromTitle.amt || fromTitle.cashPct || fromTitle.cashAmt || fromTitle.tiers || fromTitle.bogoV || fromTitle.freeShip;
+    // For a code, only fine print that names the code can say what the code is worth.
+    var tv = t;
+    if (!hasV && opts.code && terms) {
+      var hit = String(terms).split(/(?<=[.!?])\s+|\s+see (?:promo |offer )?details\b\s*/i).filter(function (x) { return x.toUpperCase().indexOf(opts.code) >= 0; });
+      tv = clean((title || '') + ' . ' + hit.join(' '));
     }
-
-    if (p.pct == null && /\bhalf[- ]off\b|\bhalf[- ]price\b/i.test(noShip)) p.pct = 50;
-    // Caps: "50% off, up to $15", "Max $30 back", "maximum of $10"
-    m = /%[^.$]{0,40}?\bup to\s+\$\s?(\d{1,4})/i.exec(noShip) || /\bmax(?:imum)?\.?\s*(?:of\s*)?\$\s?(\d{1,4})(?:\.\d{2})?\s*(?:back|cash back|off|savings|discount|in rewards)?/i.exec(noShip) || /\bup to\s+\$\s?(\d{1,4})\s*(?:back|cash back|in rewards)/i.exec(noShip);
-    if (m) p.cap = num(m[1]);
-    // "off a drink", "off one item": a single item, not the whole order
-    p.singleItem = /\boff\s+(?:a|an|one|any one|1|your next|a single)\s+(?!order\b|purchase\b|online order\b|qualifying order\b)[a-z]/i.test(noShip) || /\b(?:free|complimentary)\s+(?:drink|item|entree|appetizer|dessert|side|coffee|gift)\b/i.test(noShip);
-
-    // Dollars off, and "$X off $Y"
-    m = /\$\s?(\d{1,4}(?:\.\d{2})?)\s*off(?:\s+(?:your\s+|an?\s+|any\s+)?(?:(?:orders?|purchases?)\s+(?:of\s+|over\s+)?)?\$\s?(\d{1,4})\s?\+?)?/i.exec(noShip) ||
-        /save\s+\$\s?(\d{1,4}(?:\.\d{2})?)(?:\s+(?:on|when you spend|with)\s+(?:orders?\s+(?:of\s+)?)?\$\s?(\d{1,4}))?/i.exec(noShip) ||
-        /\$\s?(\d{1,4})\s*(?:discount|savings|instant savings)/i.exec(noShip);
-    if (m) {
-      p.amt = num(m[1]);
-      if (m[2]) p.minSpend = num(m[2]);
+    var vals = hasV ? fromTitle : readValues(tv);
+    Object.keys(vals).forEach(function (k) { if (k !== 'noShip' && k !== 'bogoV') p[k] = vals[k]; });
+    if (hasV && fromTitle.minSpend == null) {
+      var more = readValues(t);
+      if (more.minSpend != null && !fromTitle.tiers) p.minSpend = more.minSpend;
+      if (!p.cap && more.cap) p.cap = more.cap;
+      if (!p.freeShip && more.freeShip) { p.freeShip = true; p.freeShipMin = more.freeShipMin; }
     }
-
-    // Minimum spend
-    if (p.minSpend == null) {
-      m = /(?:orders?|purchases?)\s+(?:of\s+)?\$\s?(\d{1,4})\s?\+/i.exec(noShip) ||
-          /(?:orders?|purchases?|subtotal)\s+(?:of\s+|over\s+|above\s+|totaling\s+|totalling\s+|exceeding\s+)\$\s?(\d{1,4})/i.exec(noShip) ||
-          /(?:when|if)\s+you\s+spend\s+(?:at least\s+)?\$\s?(\d{1,4})/i.exec(noShip) ||
-          /\bspend\s+(?:at least\s+)?\$\s?(\d{1,4})/i.exec(noShip) ||
-          /(?:minimum|min\.?)\s+(?:purchase|order|spend|subtotal)?\s*(?:of\s+)?\$\s?(\d{1,4})/i.exec(noShip) ||
-          /\bon\s+\$\s?(\d{1,4})\s?\+/i.exec(noShip) ||
-          /\$\s?(\d{1,4})\s?\+\s*(?:orders?|purchases?|spend)/i.exec(noShip) ||
-          /\$\s?(\d{1,4})\s+(?:or more|minimum)/i.exec(noShip);
-      if (m) p.minSpend = num(m[1]);
-    }
+    var noShip = readValues(t).noShip;
+    p.singleItem = !!(fromTitle.singleItem || (!hasV && vals.singleItem));
 
     p.bogo = /\bbogo\b|buy\s+(?:one|1),?\s+get\s+(?:one|1)/i.test(t);
     p.newCust = /\bnew\s+(?:customers?|members?|accounts?|subscribers?|users?|sign-?ups?)\b|first[- ](?:order|purchase|time|app order)|first\s+\w+\s+order/i.test(t);
-    p.appOnly = /\b(?:in|via|on|through|using)\s+(?:the|our)\s+(?:\w+\s+)?app\b|\bapp[- ]only\b|\bapp[- ]exclusive\b|\bmobile app only\b/i.test(t);
+    p.appOnly = /\b(?:in|via|on|through|using)\s+(?:the|our)\s+(?:\w+\s+)?app\b|\bapp[- ]only\b|\bapp[- ]exclusive\b|\bmobile app only\b|\bdownload (?:our|the) app\b|\bapp orders? only\b/i.test(t);
     p.inStore = /\bin[- ]stores?\s+only\b|\bvalid\s+(?:only\s+)?in[- ]stores?\b|\bin[- ]warehouse(?:s)?\s+only\b|\bwarehouse[- ]only\b|\bnot valid online\b/i.test(t);
     p.online = /\bonline\s+only\b|\bonline\s+exclusive\b|\bvalid\s+(?:only\s+)?online\b|\bonline\s+orders?\s+only\b|\bnot valid in[- ]stores?\b|\.com only\b/i.test(t);
     p.exclSale = /(?:excludes?|excluding|not\s+valid\s+on|not\s+applicable\s+to|exclusions?:?)[^.;]{0,50}\b(?:sale|clearance|markdowns?|discounted|reduced)\b|\bfull[- ]price\s+(?:items|merchandise)\s+only\b|\bregular[- ]price\b/i.test(t);
@@ -907,19 +950,24 @@
   }
 
   function valueLabel(p, title) {
+    if (p.pctHigh) return (p.extra ? 'Extra ' : '') + p.pct + '–' + p.pctHigh + '% off';
+    if (p.stackText) return p.stackText + ' (' + p.pct + '% total)';
+    if (p.tiers && p.tiers.length >= 2) return money(p.tiers[0].amt) + '–' + money(p.tiers[p.tiers.length - 1].amt) + ' off';
     if (p.cashPct && (!p.pct || /back|reward/i.test(title || ''))) return (p.upTo ? 'Up to ' : '') + pctStr(p.cashPct) + ' back';
     if (p.cashAmt && !p.pct && !p.amt) return money(p.cashAmt) + ' back';
     if (p.pct) return (p.upTo ? 'Up to ' : p.extra ? 'Extra ' : '') + pctStr(p.pct) + ' off';
     if (p.amt) return money(p.amt) + ' off' + (p.minSpend ? ' ' + money(p.minSpend) + '+' : '');
     if (p.bogo) return 'Buy one, get one';
     if (p.freeShip) return 'Free shipping';
+    if (/\bcode\b/i.test(title || '')) return 'Amount not stated';
     return '';
   }
 
   function buildGist(p, opts) {
     var parts = [];
     if (p.headline) parts.push(p.headline);
-    if (p.minSpend && !(p.amt && /\+$/.test(p.headline))) parts.push(money(p.minSpend) + ' min');
+    if (p.tiers && p.tiers.length >= 2) parts.push(p.tiers.map(function (t) { return money(t.amt) + ' off ' + money(t.min); }).join(', '));
+    else if (p.minSpend && !(p.amt && /\+$/.test(p.headline))) parts.push(money(p.minSpend) + ' min');
     if (p.newCust) parts.push('new customers');
     if (p.members) parts.push('members');
     if (p.appOnly) parts.push('app only');
@@ -947,7 +995,8 @@
     } else if (p.autoApply || kind === 'sale') {
       b.push(opts.store === 'costco.com' ? 'No code needed. The discount comes off at the register or at checkout.' : 'No code needed. The discount shows in your cart or at checkout.');
     }
-    if (p.minSpend) b.push('Spend at least ' + money(p.minSpend) + ' (usually before tax and shipping).');
+    if (p.tiers && p.tiers.length >= 2) b.push('The more you spend, the more you save: ' + p.tiers.map(function (t) { return money(t.amt) + ' off when you spend ' + money(t.min); }).join('; ') + '.');
+    else if (p.minSpend) b.push('Spend at least ' + money(p.minSpend) + ' (usually before tax and shipping).');
     if (p.newCust) b.push('Only for new customers or your first order.');
     if (p.signup) b.push('You have to sign up for the store\'s emails or texts.');
     if (p.members) b.push('Sign in or be a rewards member.');
@@ -1184,6 +1233,1093 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Reading a whole web page: each deal together with what's around it */
+  /* ------------------------------------------------------------------ */
+
+  // A small, forgiving HTML reader. Nodes: { t: tag, a: attrs, c: children, p: parent }
+  // and text nodes { t: '#', v: text, p: parent }. The Safari add-on builds the same
+  // shape from the live page, so both read deals the same way.
+  var VOID_TAGS = { area: 1, base: 1, br: 1, col: 1, embed: 1, hr: 1, img: 1, input: 1, link: 1, meta: 1, param: 1, source: 1, track: 1, wbr: 1 };
+  var SKIP_TAGS = { script: 1, style: 1, noscript: 1, template: 1, svg: 1, iframe: 1, object: 1, canvas: 1, math: 1, select: 1 };
+  var AUTO_CLOSE = { li: { li: 1 }, p: { p: 1 }, option: { option: 1 }, tr: { tr: 1, td: 1, th: 1 }, td: { td: 1, th: 1 }, th: { td: 1, th: 1 }, dt: { dt: 1, dd: 1 }, dd: { dt: 1, dd: 1 } };
+  var BLOCK_TAGS = { address: 1, article: 1, aside: 1, blockquote: 1, dd: 1, details: 1, dialog: 1, div: 1, dl: 1, dt: 1, fieldset: 1, figcaption: 1, figure: 1, footer: 1, form: 1, h1: 1, h2: 1, h3: 1, h4: 1, h5: 1, h6: 1, header: 1, hgroup: 1, hr: 1, li: 1, main: 1, nav: 1, ol: 1, p: 1, pre: 1, section: 1, table: 1, tbody: 1, thead: 1, tfoot: 1, tr: 1, td: 1, th: 1, ul: 1, summary: 1, br: 1, button: 1, title: 1, body: 1, html: 1, '#root': 1 };
+  var endTagRe = {};
+
+  function parseAttrs(s) {
+    var a = {};
+    if (!s) return a;
+    var re = /([^\s"'>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    var m;
+    while ((m = re.exec(s)) !== null) {
+      var k = m[1].toLowerCase();
+      if (k in a) continue;
+      var v = m[2] != null ? m[2] : m[3] != null ? m[3] : m[4] != null ? m[4] : '';
+      a[k] = v.indexOf('&') >= 0 ? decodeEntities(v) : v;
+    }
+    return a;
+  }
+
+  function parseHTML(html) {
+    html = String(html || '');
+    var root = { t: '#root', a: {}, c: [], p: null };
+    var stack = [root];
+    var top = root;
+    var ld = [];
+    var re = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<![^>]*>|<\?[^>]*>|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+    var last = 0;
+    var m;
+    function addText(s) {
+      if (!/\S/.test(s)) return;
+      var v = clean(s.indexOf('&') >= 0 ? decodeEntities(s) : s);
+      if (v) top.c.push({ t: '#', v: v, p: top });
+    }
+    while ((m = re.exec(html)) !== null) {
+      if (m.index > last) addText(html.slice(last, m.index));
+      last = re.lastIndex;
+      if (!m[2]) continue;
+      var tag = m[2].toLowerCase();
+      if (m[1] === '/') {
+        for (var i = stack.length - 1; i > 0 && i >= stack.length - 80; i--) {
+          if (stack[i].t === tag) { stack.length = i; top = stack[i - 1]; break; }
+        }
+        continue;
+      }
+      var attrStr = m[3] || '';
+      var selfClose = /\/\s*$/.test(attrStr);
+      if (SKIP_TAGS[tag] && !selfClose) {
+        var er = endTagRe[tag] || (endTagRe[tag] = new RegExp('</' + tag + '\\s*>', 'ig'));
+        er.lastIndex = last;
+        var em = er.exec(html);
+        var end = em ? em.index : html.length;
+        if (tag === 'script' && /ld\+json/i.test(attrStr)) ld.push(html.slice(last, end));
+        last = em ? er.lastIndex : html.length;
+        re.lastIndex = last;
+        continue;
+      }
+      var ac = AUTO_CLOSE[tag];
+      if (ac && ac[top.t] && stack.length > 1) { stack.pop(); top = stack[stack.length - 1]; }
+      var node = { t: tag, a: parseAttrs(attrStr), c: [], p: top };
+      top.c.push(node);
+      if (!VOID_TAGS[tag] && !selfClose) { stack.push(node); top = node; }
+    }
+    if (last < html.length) addText(html.slice(last));
+    root.ld = ld;
+    return root;
+  }
+
+  function walk(n, fn) {
+    var st = [n];
+    while (st.length) {
+      var x = st.pop();
+      if (fn(x) === false) continue;
+      if (x.c) for (var i = x.c.length - 1; i >= 0; i--) st.push(x.c[i]);
+    }
+  }
+
+  function textLen(n) {
+    if (n._len != null) return n._len;
+    if (n.t === '#') return (n._len = n.v.length + 1);
+    var s = 0;
+    for (var i = 0; i < n.c.length; i++) s += textLen(n.c[i]);
+    return (n._len = s);
+  }
+
+  // Text with a line break between blocks.
+  function nodeText(n, max) {
+    var out = [];
+    var size = 0;
+    max = max || 20000;
+    (function rec(x) {
+      if (size > max) return;
+      if (x.t === '#') { out.push(x.v); size += x.v.length; return; }
+      if (x.t === 'img') return;
+      var block = BLOCK_TAGS[x.t];
+      if (block) out.push('\n');
+      for (var i = 0; i < x.c.length; i++) rec(x.c[i]);
+      if (block) out.push('\n');
+    })(n);
+    return out.join(' ').replace(/[ \t]*\n[ \t\n]*/g, '\n').replace(/ {2,}/g, ' ').trim();
+  }
+  function lineText(n, max) { return clean(nodeText(n, max).replace(/\n+/g, ' · ')).replace(/(?: · )+/g, ' · '); }
+
+  function cls(n) { return n.a ? ((n.a['class'] || '') + ' ' + (n.a.id || '') + ' ' + (n.a['data-testid'] || '') + ' ' + (n.a.itemprop || '') + ' ' + (n.a['data-qa'] || '')).toLowerCase() : ''; }
+
+  function absUrl(href, base) {
+    if (!href) return null;
+    href = String(href).trim();
+    if (/^(javascript:|mailto:|tel:|data:|#$)/i.test(href)) return null;
+    try { return new URL(href, base).toString(); } catch (e) { return null; }
+  }
+
+  function sameStore(url, domain) {
+    try { return storeKey(new URL(url).hostname) === domain || registrableDomain(new URL(url).hostname) === registrableDomain(domain); } catch (e) { return false; }
+  }
+
+  function imgSrc(n, base) {
+    var a = n.a || {};
+    var src = a['data-src'] || a['data-original'] || a['data-lazy-src'] || a.src || '';
+    if ((!src || /^data:/.test(src)) && (a.srcset || a['data-srcset'])) src = String(a.srcset || a['data-srcset']).split(',')[0].trim().split(/\s+/)[0];
+    if (!src || /^data:/.test(src) || /\.svg(\?|$)/i.test(src) || /spacer|blank|pixel|placeholder|1x1/i.test(src)) return null;
+    return absUrl(src, base);
+  }
+
+  var USD_RE = /\$\s?(\d{1,3}(?:,\d{3})+|\d{1,6})(\.\d{2})?/g;
+  function amounts(text) {
+    var out = [];
+    var m;
+    text = String(text || '').replace(/\$\s+(\d)/g, '$$$1').replace(/(\$\d[\d,]*)\s+\.(\d{2})\b/g, '$1.$2');
+    USD_RE.lastIndex = 0;
+    while ((m = USD_RE.exec(text)) !== null) {
+      var before = text.slice(Math.max(0, m.index - 14), m.index).toLowerCase();
+      var after = text.slice(USD_RE.lastIndex, USD_RE.lastIndex + 14).toLowerCase();
+      out.push({ v: parseFloat((m[1] + (m[2] || '')).replace(/,/g, '')), off: /^\s*(off|back|in savings|savings|credit|reward)/.test(after) || /(save|savings|you save|saved|save up to|combo offer|offer|bonus|rebate|credit|reward|rewards|coupon|promo|discount|instant savings|gift card|get|extra|plus|\+|-)\s*$/.test(before), idx: m.index });
+    }
+    return out;
+  }
+
+  var STRIKE_CLS = /(line-?through|strike|\bwas\b|was-?price|original|compare|regular|list-?price|old-?price|msrp|price-?(?:old|before|reg|was|list)|crossed|retail|\breg\b|full-?price|price--?standard|price-?standard|strikethrough)/;
+  var NAME_CLS = /(?:^|[\s_-])(?:product|item|tile|card|goods|game|app|prod)?[-_]?(?:name|title)(?:$|[\s_-])|\bheading\b|pdp-link/;
+
+  function isStrike(n) {
+    if (n.t === 's' || n.t === 'del' || n.t === 'strike') return true;
+    var c = cls(n);
+    if (c && STRIKE_CLS.test(c) && !/(save|savings|off|percent|badge|discount-?pct|discount_pct)/.test(c)) return true;
+    var st = n.a && n.a.style;
+    return !!(st && /line-through/i.test(st));
+  }
+
+  var STOCK_OUT = /\b(out of stock|sold out|unavailable|notify me|no longer available|coming soon)\b/i;
+  var STOCK_LOW = /\b(only \d+ left|low stock|almost gone|selling fast|limited stock|last chance)\b/i;
+  var PRODUCT_HREF = /\/(p|product|products|dp|ip|item|items|app|pd|prod|buy|shop\/p|sku|gp\/product)\/|\.html?(\?|$)|[?&](sku|pid|productid|product_id)=|\/\d{5,}(\/|$|\?)/i;
+
+  function cleanName(s) {
+    s = clean(s)
+      .replace(/\$\s?\d[\d,]*(\.\d{2})?(\s*(off|-|–|to)\s*\$\s?\d[\d,]*(\.\d{2})?)?/g, ' ')
+      .replace(/-?\d{1,2}\s?%\s*(off)?/gi, ' ')
+      .replace(/\b(sale|new|on sale|clearance|was|now|reg\.?|regular price|sale price|original price|price|save|limited time|best seller|bestseller|online only|exclusive|add to (cart|bag)|quick (view|add)|compare|choose options|select options|\d(\.\d)? out of 5 stars?|\(\d[\d,]*\)|rated [\d.]+ out of 5)\b/gi, ' ')
+      .replace(/\s*[|·•]\s*/g, ' ').replace(/\s+,/g, ',').replace(/\s{2,}/g, ' ').replace(/^[\s,.:;\-–]+|[\s,.:;\-–]+$/g, '');
+    // Star ratings and "Starting at" tails ("Photo Book 4.54 ( 19493 ) Starting at")
+    s = s.replace(/\s+\d(?:\.\d{1,2})?\s*\(\s*[\d,]+\s*\).*$/, '').replace(/\s+\(\s*[\d,]+\s*\)\s*$/, '').replace(/\s+(?:starting at|starts at|from|as low as)\s*$/i, '').trim();
+    return s;
+  }
+
+  function nameIn(card, base) {
+    var best = null;
+    var bestRank = 9;
+    var alt = null;
+    walk(card, function (n) { if (!alt && n.t === 'img') { var a = cleanName(n.a.alt || n.a.title || ''); if (a.length >= 12 && a.length <= 160) alt = a; } });
+    walk(card, function (n) {
+      if (n.t === '#') return;
+      var rank = 9;
+      var txt = null;
+      if (/^h[1-6]$/.test(n.t)) rank = 2;
+      else if (NAME_CLS.test(cls(n)) && !/(price|badge|rating|review|swatch|label-?sale|promo|section-?title|section-?header|module-?title|carousel-?title|shelf-?title|row-?title|tab-?title)/.test(cls(n))) rank = 1;
+      else if (n.t === 'a') rank = 3;
+      else if (n.t === 'img') { rank = 4; txt = n.a.alt || n.a.title || ''; }
+      if (rank < 9 && rank < bestRank) {
+        if (txt == null) txt = lineText(n, 400);
+        txt = cleanName(txt);
+        var junk = /^(?:full|half|empty|filled) stars?$|^\d(?:\.\d)?\s*(?:out of 5\s*)?stars?\b|^rated\b|^(?:\d+ )?reviews?$/i.test(txt) || /[.!?]\*?\s+[A-Z]/.test(txt) || /^(?:our|get|spend|unlock|enjoy|discover|introducing|meet|new!|join|sign|free shipping)\b/i.test(txt) || /\bwith (?:any|every|your) (?:order|purchase)\b|\bfree (?:standard )?shipping\b/i.test(txt) || /^\(|^(?:lowest|newegg select|sponsored|shell shocker|best seller|bestseller|top rated|see all|featured|hot|deal|special offer|limited time|sold by|ships from|free shipping|in stock|out of stock|(?:all |special |exclusive |current )?offers?$|(?:all )?promotions?$|(?:all )?deals?$|gifts? with purchase$)\b/i.test(txt) || (txt.length < 14 && rank < 4 && !/\s/.test(txt) && /^[A-Z]/.test(txt) === false);
+        if (!junk && txt.length >= 4 && txt.length <= (rank >= 3 ? 110 : 160) && /[a-z]{2}/i.test(txt) && !/^(shop|view|see|buy|add|details|more|quick|compare)\b/i.test(txt)) { best = txt; bestRank = rank; }
+      }
+      if (n.t === 'a' && n.a['aria-label'] && rank > 3 && bestRank > 3) {
+        var al = cleanName(n.a['aria-label']);
+        if (al.length >= 4 && al.length <= 160 && !/^(shop|view|see|add)/i.test(al)) { best = al; bestRank = 3.5; }
+      }
+    });
+    if (alt && (!best || (best.length < 14 && alt.toLowerCase().indexOf(best.toLowerCase()) < 0 && bestRank >= 1))) return alt;
+    return best;
+  }
+
+  function linkIn(card, base, domain, name) {
+    var links = [];
+    if (card.t === 'a' && card.a.href) links.push(card);
+    var up = card.p;
+    for (var k = 0; k < 2 && up; k++, up = up.p) if (up.t === 'a' && up.a.href) links.push(up);
+    walk(card, function (n) { if (n.t === 'a' && n.a.href) links.push(n); });
+    var best = null;
+    var bestScore = -1;
+    links.forEach(function (l) {
+      var u = absUrl(l.a.href, base);
+      if (!u) return;
+      var s = 0;
+      if (PRODUCT_HREF.test(u)) s += 3;
+      if (domain && sameStore(u, domain)) s += 2;
+      var t = lineText(l, 300);
+      if (name && t && t.indexOf(name.slice(0, 20)) >= 0) s += 2;
+      if (/review|#|login|account|wishlist|compare/i.test(u)) s -= 3;
+      if (s > bestScore) { bestScore = s; best = u; }
+    });
+    return best;
+  }
+
+  // Product tiles: a struck-through "regular" price next to a lower price, a name and a link.
+  function findProducts(root, base, domain) {
+    var out = [];
+    var seen = {};
+    var strikes = [];
+    walk(root, function (n) {
+      if (n.t === '#') return;
+      if (n.t === 'head') return false;
+      if (n._card) return false;
+      if (isStrike(n)) {
+        var tx = lineText(n, 200);
+        if (/\$\s?\d/.test(tx)) strikes.push(n);
+        return false;
+      }
+    });
+    strikes.forEach(function (s) {
+      var card = s;
+      var found = null;
+      for (var k = 0; k < 12 && card.p; k++) {
+        card = card.p;
+        var len = textLen(card);
+        if (len > 900) break;
+        var txt = lineText(card, 1200);
+        var prices = amounts(txt).filter(function (x) { return !x.off; });
+        var distinct = {};
+        prices.forEach(function (x) { distinct[x.v] = 1; });
+        var nd = Object.keys(distinct).length;
+        if (nd > 8) break;
+        if (nd >= 2) {
+          var hasLink = card.t === 'a' || (card.p && card.p.t === 'a');
+          if (!hasLink) walk(card, function (x) { if (x.t === 'a' && x.a.href) { hasLink = true; return false; } });
+          if (hasLink && (textLen(card) > 25)) { found = card; if (nameIn(card, base)) break; }
+        }
+      }
+      if (!found || found._card) return;
+      if (/\bbogo\b|buy (?:1|one|2|two),? get (?:1|one)|\b\d for \$\d/i.test(lineText(found, 600))) { found._card = true; return; }
+      var nameFirst = nameIn(found, base);
+      // Widen to the whole tile (image, badges) while no other product's prices come in.
+      var own = {};
+      amounts(lineText(found, 1500)).forEach(function (x) { own[x.v] = 1; });
+      var tile = found;
+      for (var w = 0; w < 6 && tile.p && tile.p.t !== 'body' && tile.p.t !== '#root'; w++) {
+        var upn = tile.p;
+        if (textLen(upn) > 1100 || upn._card) break;
+        var extra = amounts(lineText(upn, 1600)).filter(function (x) { return !x.off && !own[x.v]; });
+        if (extra.length) break;
+        var otherCard = false;
+        walk(upn, function (y) { if (y !== tile && y._card) { otherCard = true; return false; } });
+        if (otherCard) break;
+        tile = upn;
+      }
+      if (tile._card) return;
+      found = tile;
+      var text = lineText(found, 1500);
+      var name = nameFirst || nameIn(found, base);
+      if (!name) return;
+      var lines = nodeText(found, 1500).split('\n').map(clean).filter(Boolean);
+      var ni = lines.findIndex(function (l) { return cleanName(l) === name || l === name; });
+      var sub = ni >= 0 && lines[ni + 1] && lines[ni + 1].length <= 70 && !/[$%]|\d\s?off|^(special offer|gift with purchase|add to|buy now|sale|new|limited|sold out|out of stock|notify me|\d)/i.test(lines[ni + 1]) && cleanName(lines[ni + 1]).length > 3 ? cleanName(lines[ni + 1]) : null;
+      if (sub && sub.toLowerCase() !== name.toLowerCase() && name.length < 60) name = name + ' (' + sub + ')';
+      var badge = null;
+      walk(found, function (y) {
+        if (badge || y.t === '#') return;
+        var lab = (y.a && (y.a['aria-label'] || '')) + ' ' + (y.t !== '#' && textLen(y) < 40 ? lineText(y, 60) : '');
+        var m = /(gift with purchase|free gift|special offer|bundle (?:&|and) save|bonus|bogo|buy more,? save more|limited[- ]time deal|deal of the day|clearance|lowest price)/i.exec(lab);
+        if (m) {
+          var detail = y.a && y.a.title ? clean(nodeText(parseHTML(decodeEntities(y.a.title)), 400)) : '';
+          badge = capFirst(m[1].toLowerCase()) + (detail ? ': ' + detail.replace(/^[\s*]+/, '').slice(0, 220) : '');
+          return false;
+        }
+      });
+      var regs = amounts(lineText(s, 200)).filter(function (x) { return !x.off; }).map(function (x) { return x.v; });
+      var strikeVals = {};
+      walk(found, function (x) { if (x !== s && x.t !== '#' && isStrike(x)) { amounts(lineText(x, 200)).forEach(function (y) { if (!y.off) strikeVals[y.v] = 1; }); return false; } });
+      regs.forEach(function (v) { strikeVals[v] = 1; });
+      var all = amounts(text.split(name).join(' ')).filter(function (x) { return !x.off; });
+      var sale = all.map(function (x) { return x.v; }).filter(function (v) { return !strikeVals[v] && v > 0; });
+      var was = Object.keys(strikeVals).map(Number);
+      if (!sale.length || !was.length) return;
+      var price = Math.min.apply(null, sale);
+      var regular = Math.max.apply(null, was);
+      if (!(regular > price) || price <= 0 || price / regular < 0.15) return;
+      var url = linkIn(found, base, domain, name);
+      if (!url) return;
+      var key = url.split('#')[0] + '|' + name;
+      found._card = true;
+      if (seen[key]) return;
+      seen[key] = 1;
+      walk(found, function (y) { if (y !== found && y.t !== '#') y._in = true; });
+      var img = null;
+      walk(found, function (x) { if (!img && x.t === 'img') { img = imgSrc(x, base); if (img) return false; } });
+      var stock = STOCK_OUT.test(text) ? 'out' : STOCK_LOW.test(text) ? 'low' : null;
+      var ends = parseExpiry(text);
+      out.push({ name: name.slice(0, 160), url: url, price: price, was: regular, pct: Math.round((1 - price / regular) * 100), img: img, stock: stock, badge: badge, from: sale.length > 1 && /\bfrom\b|\bstarting\b|–|-\s*\$/.test(text), text: text.slice(0, 400), expires: ends });
+    });
+    return out;
+  }
+
+  // Products described in a page's structured data (schema.org).
+  function productsFromLd(root, base) {
+    var out = [];
+    (root.ld || []).forEach(function (raw) {
+      var data;
+      try { data = JSON.parse(raw.trim()); } catch (e) { return; }
+      var stack = [data];
+      var guard = 0;
+      while (stack.length && guard++ < 3000) {
+        var x = stack.pop();
+        if (!x || typeof x !== 'object') continue;
+        if (Array.isArray(x)) { x.forEach(function (y) { stack.push(y); }); continue; }
+        var type = [].concat(x['@type'] || []).join(' ');
+        if (/Product/.test(type) && x.name) {
+          var offers = [].concat(x.offers || []);
+          offers.forEach(function (o) {
+            if (!o || typeof o !== 'object') return;
+            var price = parseFloat(o.price || o.lowPrice);
+            var was = null;
+            [].concat(o.priceSpecification || []).forEach(function (ps) {
+              if (ps && /ListPrice|StrikethroughPrice|MSRP/i.test(String(ps.priceType || ''))) was = parseFloat(ps.price);
+            });
+            if (o.highPrice && !was && /AggregateOffer/.test([].concat(o['@type'] || []).join(''))) was = null;
+            if (!(price > 0 && was > price)) return;
+            if (o.priceCurrency && o.priceCurrency !== 'USD') return;
+            var img = [].concat(x.image || [])[0];
+            if (img && typeof img === 'object') img = img.url;
+            out.push({
+              name: clean(String(x.name)).slice(0, 160), url: absUrl(o.url || x.url || base, base), price: price, was: was,
+              pct: Math.round((1 - price / was) * 100), img: img ? absUrl(String(img), base) : null,
+              stock: /OutOfStock|SoldOut|Discontinued/i.test(String(o.availability || '')) ? 'out' : null,
+              expires: o.priceValidUntil ? isoDay(o.priceValidUntil) : null, text: ''
+            });
+          });
+        }
+        for (var k in x) if (x[k] && typeof x[k] === 'object') stack.push(x[k]);
+      }
+    });
+    return out;
+  }
+
+  /* Promotions: the value line, plus the banner or box it sits in. */
+
+  var SEED_RE = /\d{1,2}(?:\.\d)?\s?%\s*(?:off|back)\b|\$\s?\d[\d,]*(?:\.\d{2})?\s*off\b|\b(?:promo|coupon|discount|offer)\s+code\b|\buse code\b|\bwith code\b|\bw\/\s*code\b|\bcode\s*:\s*[A-Z0-9]|\bbogo\b|\bbuy (?:one|1|2|two),? get\b|\bextra \d{1,2}\s?%|\bsave (?:up to |an extra |extra |an additional )?(?:\$\s?\d|\d{1,2}\s?%)|\bspend \$\s?\d[\d,]*[^.]{0,12}\b(?:get|save)\b|\bfree (?:standard |ground )?shipping (?:on|with|for) (?:orders?|purchases?|all|any|\$)|\bhalf[- ]off\b|\btake (?:an extra |an additional )?\d{1,2}\s?%/i;
+  var JUNK_LINE = /\brebate\b|^(?:limit|offer valid|valid on|valid through|terms|excludes|exclusions|not valid|while supplies)\b.{40,}|cookie|privacy policy|javascript|©|copyright|all rights reserved|terms of use|accessibility|your browser|captcha|skip to|prequalif|credit card|apply now|apr\b|financing|paypal credit|klarna|afterpay|affirm|\bloan\b|refer a friend|give \$?\d+%?,? get|commission|gift card balance|away from free shipping|more to (?:earn|get|qualify)/i;
+  var CTA_RE = /^(?:shop|buy|see|view|browse|explore|get|discover|find|claim|unlock|start|book|order|grab|save)\b|^learn more$|^details$/i;
+  var TERMS_LINK = /terms|details|exclusions?|restrictions?|conditions|fine print|disclaimer|see (?:offer|promo)|offer details/i;
+
+  function isNavLike(n) {
+    for (var k = 0, x = n; x && k < 30; k++, x = x.p) {
+      if (x.t === 'nav' || x.t === 'footer') return x.t;
+      var c = cls(x);
+      if (/(^|\s|-)(nav|menu|megamenu|footer|breadcrumb)(\s|-|$|__)/.test(c) && !/promo|banner|offer|announcement/.test(c)) return 'nav';
+    }
+    return null;
+  }
+
+  function inCard(n) { for (var x = n; x; x = x.p) if (x._card) return x; return null; }
+
+  // A product tile around a deal line: picture, price and a product link close together.
+  function tileOf(n, base) {
+    var c = inCard(n);
+    if (c) return c;
+    var x = n;
+    for (var k = 0; k < 6 && x.p; k++) {
+      x = x.p;
+      var len = textLen(x);
+      if (len > 600) return null;
+      var hasImg = false, hasProd = false, hasLink = false, priceCls = false;
+      walk(x, function (y) {
+        if (y.t === 'img' && imgSrc(y, base)) hasImg = true;
+        if (y.t === 'a' && y.a.href) { hasLink = true; if (PRODUCT_HREF.test(y.a.href)) hasProd = true; }
+        if (y.t !== '#' && /(?:^|[\s_-])price/.test(cls(y))) priceCls = true;
+      });
+      hasProd = hasProd || (hasLink && priceCls && len < 450);
+      if (hasImg && hasProd && amounts(lineText(x, 700)).some(function (a) { return !a.off; })) return x;
+    }
+    return null;
+  }
+
+  function lineOf(n) {
+    // The smallest block around a seed that reads as one sentence or headline:
+    // climb past bare values ("40% OFF") to reach the words that go with them.
+    var x = n.t === '#' ? n.p : n;
+    var best = x;
+    for (var k = 0; k < 7 && x; k++) {
+      if (textLen(x) > 240) break;
+      best = x;
+      var t = lineText(x, 300);
+      var words = t.replace(/\d{1,2}(?:\.\d)?\s?%|\$\s?\d[\d,]*(?:\.\d{2})?|\b(?:up to|off|extra|save|take|get|an|additional|now|only|plus|code|back|bogo|buy|free|\d)\b|[^a-z]/gi, '');
+      if (words.length >= 8 && textLen(x) >= 18 && (BLOCK_TAGS[x.t] || x.t === 'a') && !(x.p && !BLOCK_TAGS[x.t] && textLen(x.p) <= 240 && /^(?:span|strong|b|em|i|small|sup|a|font|u|mark)$/.test(x.t) && x.p.c.length > 1)) break;
+      x = x.p;
+    }
+    return best;
+  }
+
+  function containerOf(n) {
+    var x = n;
+    var best = n;
+    for (var k = 0; k < 14 && x.p; k++) {
+      var up = x.p;
+      if (up.t === 'body' || up.t === '#root' || up.t === 'html' || up.t === 'main') break;
+      if (textLen(up) > 750) break;
+      var hasCard = false;
+      walk(up, function (y) { if (y._card) { hasCard = true; return false; } });
+      if (hasCard) break;
+      best = up;
+      x = up;
+    }
+    return best;
+  }
+
+  // The heading closest above the deal's line inside its box (or the first one after it).
+  function headingIn(c, line, lineNode) {
+    var before = null;
+    var after = null;
+    var pos = lineNode ? lineNode._o : -1;
+    walk(c, function (n) {
+      if (n.t === '#') return;
+      if (/^h[1-6]$/.test(n.t) || /(heading|headline|eyebrow|\btitle\b|-title|title-)/.test(cls(n))) {
+        var t = lineText(n, 300);
+        if (t && t.length >= 3 && t.length <= 160 && t !== line && !(lineNode && (n === lineNode || isInside(lineNode, n) || isInside(n, lineNode))) && (!lineNode || closeTogether(n, lineNode, 380))) {
+          if (n._o < pos) before = t;
+          else if (!after) after = t;
+        }
+        return false;
+      }
+    });
+    return before || after;
+  }
+  function isInside(a, b) { for (var x = a; x; x = x.p) if (x === b) return true; return false; }
+  function closeTogether(a, b, maxLen) {
+    var anc = [];
+    for (var x = a; x; x = x.p) anc.push(x);
+    for (var y = b; y; y = y.p) if (anc.indexOf(y) >= 0) return textLen(y) <= maxLen;
+    return false;
+  }
+
+  function linksIn(c, base) {
+    var out = [];
+    var x = c;
+    for (var k = 0; k < 3 && x; k++, x = x.p) if (x.t === 'a' && x.a.href) { out.push(x); break; }
+    walk(c, function (n) { if (n.t === 'a' && n.a.href) out.push(n); });
+    return out.map(function (a) {
+      return { url: absUrl(a.a.href, base), label: clean(lineText(a, 200) || a.a['aria-label'] || a.a.title || ''), aria: a.a['aria-label'] || '', o: a._o || 0 };
+    }).filter(function (l) { return l.url; });
+  }
+
+  var FOOT_START = /^\s*(\*{1,4}|†{1,3}|‡{1,2}|[¹²³⁴⁵⁶⁷⁸⁹]|\(\d\)|\d\s?\)|offer valid|offer ends|valid (?:through|thru|until|on|for)|exclusions?\b|excludes?\b|not valid|limited time offer|promotion (?:valid|ends)|terms)/i;
+
+  // Fine print blocks on the page ("*Offer valid 10/1–10/21. Excludes…").
+  function footnotesIn(root) {
+    var out = [];
+    var seen = {};
+    walk(root, function (n) {
+      if (n.t === '#' || n.t === 'head') return n.t === 'head' ? false : undefined;
+      var len = textLen(n);
+      if (len < 30 || len > 4000) return;
+      var c = cls(n);
+      var byClass = /(disclaimer|fine-?print|legal|terms|footnote|offer-?details|exclusion|asterisk|promo-?details|details-?copy)/.test(c);
+      if (!byClass && !(BLOCK_TAGS[n.t] && textLen(n) < 1500)) return;
+      var t = nodeText(n, 4000);
+      if (!byClass && !FOOT_START.test(t)) return;
+      if (!/valid|exclu|offer|promotion|purchase|order|code|expires|ends|discount|terms|while supplies|applies|eligible/i.test(t)) return;
+      if ((t.match(/\$\s?\d/g) || []).length >= 3 && !/exclu|valid|terms|restrictions/i.test(t)) return;
+      var key = t.slice(0, 120);
+      if (seen[key]) return false;
+      seen[key] = 1;
+      out.push({ node: n, text: t.slice(0, 3000), marks: (/^\s*(\*{1,4}|†{1,3}|‡{1,2})/.exec(t) || [])[1] || null });
+      return false;
+    });
+    return out;
+  }
+
+  // What a promotion covers, read from its own words.
+  var ORDER_WORDS = /\b(sitewide|site-?wide|storewide|everything|entire (?:order|purchase|site|store)|(?:your|any|all|the|one|an?)\s+(?:entire\s+)?(?:order|purchase|cart)s?|(?:orders?|purchases?|subtotal)\s+(?:of|over|above|\$)|when you spend|spend \$|almost everything|all (?:items|products|styles|merchandise)|your first (?:order|purchase)|first (?:online )?order)\b/i;
+  var GENERIC_LABEL = /^(?:deals?|sale|sales|shop(?: now| sale| all| the sale| deals| all deals)?|see all|view all|learn more|save|savings|get|take|enjoy|offer|offers|limited time|today only|now|new|hot|special|exclusive|online|in stores?|online (?:&|and) in stores?|all|more|it|this|that|them|now through|ends|code|with code|plus|today|members?|for members|everyone|you|yourself|treat yourself|the sale|special offer|limited-time offer|online only|instantly|instant savings|up to|price|prices|price drop|clearance|markdowns?|black friday|cyber monday)$/i;
+
+  function tidyLabel(s) {
+    s = clean(String(s || '')).replace(/[*†‡¹²³]+/g, '').replace(/^[\s\-–:,.!]+|[\s\-–:,.!]+$/g, '');
+    s = s.replace(/^(?:on|for|at|in)\s+/i, '').replace(/\s+\d{1,2}$/, '').replace(/\s+(?:now|today|online|in stores?|instantly|& more|and more)$/i, '').replace(/\s+\d{1,2}$/, '');
+    s = s.replace(/[\s,;:\-–]+$/, '');
+    if (s.length > 70) s = s.slice(0, 70).replace(/\s+\S*$/, '') + '…';
+    return s;
+  }
+
+  var NOT_A_LABEL = /^(?:it'?s\b|it\b|this\b|that\b|there\b|time\b|here\b|\$?\d|orders?\b|purchases?\b|when\b|if\b|sign|email|text|subscrib|members?\b|cardmembers?\b|everyone|you\b|yourself|limited|today|tonight|this week|for a limited|off\b|back\b|more\b|less\b|now\b|instantly|plus\b|and\b|or\b|with\b|in[- ]stores?\b|online\b|at checkout|checkout|free\b|shipping\b|returns?\b|regular prices?|the regular price|list price|retail|msrp|its|their|per\b|each\b|a\b)/i;
+  var ORDER_PHRASE = /^(?:your|the|any|an?|one|every)?\s*(?:entire\s+)?(?:order|purchase|cart|everything|sitewide|site-?wide|storewide|all|almost everything|it all|all (?:products|items|merchandise|purchases)|orders?\s+.*|purchases?\s+.*|first (?:order|purchase)|next (?:order|purchase)|first online order|full[- ]price (?:items|purchases?)|regular[- ]price (?:items|purchases?))$/i;
+
+  // Labels that are page furniture or sentences, not a set of products.
+  var JUNK_LABEL = /^(?:always|everyday|every day|(?:find )?(?:your|my|a|the) (?:local )?store|store locator|(?:locations?|stores?) near(?:by| you)|bogo|b1g1|buy one,? get one(?: free)?|(?:all |special |exclusive |current |more )?offers?|(?:all )?promotions?|weekly ads?|all sale|(?:all )?products?|(?:the )?marked price|ccvalueprop|buy more,? save more|spend more,? save more)$|^results for\b|search results|\(\s*\d+\s*\)|^(?:create|get|sign|join|learn|discover|enjoy|find|see|explore|click|log|start|book|make|give|try|apply|unlock|claim|redeem|use|download|subscribe|register|stream|watch|read)\b|\b(?:buy|save|spend) more\b|marked price|\s(?:and|or|by|for|of|with|from|to|the|a|an|your|our|on|in|at|&|\+)$|^\w+\.\w{2,4}$/i;
+
+  function labelOk(ph) {
+    return ph && ph.length >= 3 && !GENERIC_LABEL.test(ph) && !NOT_A_LABEL.test(ph) && !ORDER_PHRASE.test(ph) && !JUNK_LABEL.test(ph);
+  }
+
+  function scopeOf(line, ctx) {
+    ctx = ctx || {};
+    var t = ' ' + joinSplit(clean(String(line || '').replace(/[*†‡¹²³]+/g, ' '))) + ' ';
+    var p = ctx.terms || parseTerms(line, '', {});
+    if (ctx.product) return { type: 'product', label: ctx.product };
+    var m;
+    // "20% off your order + up to 40% off cards": the first value decides.
+    var firstVal = /(?:\d{1,2}\s?%|\$\s?\d[\d,]*(?:\.\d{2})?)\s*off\b/i.exec(t);
+    var orderVal = /(?:\d{1,2}\s?%|\$\s?\d[\d,]*(?:\.\d{2})?)\s*off\s+(?:of\s+)?(?:your\s+|the\s+|an?\s+|any\s+)?(?:entire\s+|whole\s+|next\s+|first\s+|online\s+)?(?:order|purchase|everything|sitewide|site-wide|storewide|almost everything)\b/i.exec(t);
+    if (firstVal && orderVal && orderVal.index === firstVal.index) return { type: 'order', label: null, min: p.minSpend || null };
+    if ((m = /\b(?:off|on)\s+((?:a|an|one|any one|1|a single|your next|one regular[- ]priced)\s+(?!order\b|purchase\b|online order\b)[a-z][a-z0-9 '’&+™®-]{2,50}?)(?=\s*[.,!:;(·]|\s+(?:with|when|through|at|in|online|today)\b|\s*$)/i.exec(t))) return { type: 'category', label: capFirst(tidyLabel(m[1])), one: true };
+    // "PurpleFlex® Mattress: $150 off Twin XL, …" — the name before the colon is what's on sale.
+    if ((m = /^\s*([A-Za-z][A-Za-z0-9&'’.™®\- ]{2,50}?):\s*(?:up to\s+|save\s+|extra\s+|take\s+|get\s+)?(?:\$\s?\d|\d{1,2}\s?%)/.exec(t)) && labelOk(tidyLabel(m[1])) && !/(sale|deals?|event|offer|week|today|now|only|alert|special|savings|bonus)$/i.test(m[1].trim())) return { type: 'category', label: capFirst(tidyLabel(m[1])), min: p.minSpend || null };
+    var STOP = '(?=\\s*(?:[.,!:;|·(]|—|–|\\s-\\s|\\bwith\\b|\\bwhen\\b|\\bthrough\\b|\\bthru\\b|\\buntil\\b|\\bends?\\b|\\bat\\b|\\bonline\\b|\\bin[- ]stores?\\b|\\bnow\\b|\\btoday\\b|\\bcode\\b|\\bplus\\s+(?=free|\\d|\\$|an?\\s+extra|extra)|\\+\\s*(?=free|\\d|\\$|extra)|\\busing\\b|\\bfor\\b|\\band free\\b|\\bfrom\\b|\\bshop\\b|\\bexclusions\\b|\\bexcludes\\b|\\bonly\\b|\\band\\s+(?:more|up)\\b|$))';
+    var PHRASE = '((?:select(?:ed)?\\s+|all\\s+|our\\s+|the\\s+|your\\s+|every\\s+|any\\s+|full[- ]price\\s+|regular[- ]price\\s+|sale\\s+|new\\s+|two\\s+|2\\s+)*(?!off\\b|back\\b)[A-Za-z][A-Za-z0-9&\'’.\\-™®©/+ ]{1,70}?)';
+    var cands = [];
+    // "40% off boots", "25% off select men's styles"
+    t = ' ' + uniq(t.split(/\s+·\s+/).map(clean)).join(' · ') + ' ';
+    var reAfter = new RegExp('(?:(?:\\d\\s?%|\\$\\s?\\d[\\d,]*(?:\\.\\d{2})?)\\s*(?:off|back)|half[- ]off|bogo(?:\\s+(?:free|\\$\\s?\\d+(?:\\.\\d{2})?|\\d{1,2}\\s?%\\s*off))?|buy (?:one|1|2|two),? get (?:one|1|2|two)(?:\\s+(?:free|for \\$\\s?\\d+(?:\\.\\d{2})?|\\d{1,2}\\s?%\\s*off))?)\\s*(?:·\\s*(?:(?:free|\\d{1,2}\\s?%\\s*off|for \\$\\s?\\d+)\\s*·\\s*)?)?\\s+(?:on\\s+|of\\s+|for\\s+|at\\s+)?' + PHRASE + STOP, 'ig');
+    while ((m = reAfter.exec(t)) !== null) cands.push(tidyLabel(m[1]));
+    // "… on select Nivea, Aquaphor & Eucerin"
+    var reSel = /\bon\s+(select(?:ed)?\s+[A-Za-z0-9][^.·!;]{2,70}?)(?=\s*(?:[.·!;]|\bwith\b|\bthrough\b|\buntil\b|\bwhen\b|$))/ig;
+    while ((m = reSel.exec(t)) !== null) cands.push(tidyLabel(m[1]));
+    // "buy more, save more on workspace upgrades", "save on bedding"
+    var reOn = new RegExp('\\b(?:save|savings|deals?|discounts?|more)\\s+(?:up to\\s+[^ ]+\\s+)?on\\s+' + PHRASE + STOP, 'ig');
+    while ((m = reOn.exec(t)) !== null) cands.push(tidyLabel(m[1]));
+    // "when you buy the MX Keypad with select workspace products"
+    cands = cands.map(function (c) {
+      if (/^(?:sale|sale styles|sale items|sale prices?|already reduced items)$/i.test(c)) return 'Items already on sale';
+      if (/^(?:clearance|clearance items|clearance styles)$/i.test(c)) return 'Clearance items';
+      if (/^select(?:ed)? (?:styles|items|products|merchandise)( only)?$/i.test(c) && ctx.section && labelOk(tidyLabel(ctx.section)) && !/[$%]/.test(ctx.section)) return 'Select ' + tidyLabel(ctx.section) + ' ' + /(styles|items|products|merchandise)/i.exec(c)[1].toLowerCase();
+      return c;
+    });
+    // "select pillows, bedding, and more" keeps its whole list.
+    var sm = /(?:\d\s?%|\$\s?\d[\d,]*)\s*off\s+(select(?:ed)?\s+[a-z][^.!;·]{2,90}?)(?=\s*(?:[.!;·]|\s\d{1,2}\s*$|\bwith\b|\bthrough\b|\buntil\b|$))/i.exec(t);
+    if (sm && cands.length && /^select/i.test(cands[0])) cands[0] = tidyLabel(sm[1].replace(/,?\s+and more$/i, ', and more'));
+    cands = cands.map(function (c) { var w = /^select(?:ed)?\s+(\S+)$/i.exec(c); return w && brandByName(w[1]) ? c + ' items' : c; });
+    // "10% off for Cardmembers" names who gets it, not what it covers.
+    cands = cands.filter(function (c) { return !/(?:^|\s)(?:card ?members?|cardholders?|members?|rewards members?|loyalty members?|students?|teachers?|educators?|military|veterans?|nurses|heroes|first responders|healthcare workers|medical professionals|new customers?|customers?|subscribers?|app users?|seniors|you|everyone)$/i.test(c); });
+    var phrase = cands.filter(labelOk)[0] || '';
+    if (!phrase && (m = /\bwhen you (buy|bundle|purchase|order|pair)\s+((?:the\s+|a\s+|an\s+|any\s+|2\s+|two\s+|3\s+|three\s+)?[A-Za-z0-9][^.!;·]{2,70}?)(?=[.!;·]|\s*$|\s+-\s|\s*\bcode\b|\s+(?:through|until|ends|online|and (?:get|save|receive|use))\b)/i.exec(t)) && labelOk(tidyLabel(m[2]))) {
+      return { type: 'category', label: 'When you ' + m[1].toLowerCase() + ' ' + tidyLabel(m[2]), min: p.minSpend || null };
+    }
+    var before = '';
+    var bm = /^\s*([A-Z][A-Za-z0-9&'’.\- ]{2,40}?)\s*(?:[:\-–—]\s*|\s+(?:are|is)\s+(?:now\s+)?|\s)(?:up to\s+|save\s+(?:up to\s+)?|take\s+|extra\s+|get\s+)?(?:\d{1,2}\s?%|\$\s?\d)/i.exec(t);
+    if (bm) {
+      before = tidyLabel(bm[1]);
+      if (!labelOk(before) || /^(?:get|take|save|enjoy|extra|plus|now|up|shop|buy|spend|earn|score|unlock|treat|all|our|it'?s|friends (?:&|and) family|f&f|flash sale|weekend sale|fall sale|holiday sale|labor day|memorial day|presidents'? day|cyber|black friday|deal of the day|students?|military|heroes|teachers|nurses|members?|new customers?|cardmembers?)\b/i.test(before) || /(sale|deals?|event|days?|savings)$/i.test(before) || /\b(get|save|take|enjoy)$/i.test(before)) before = '';
+    }
+    if (phrase) return { type: 'category', label: capFirst(phrase.replace(/^your\s+/i, '')), min: p.minSpend || null };
+    // "Buy one ticket to Klara and the Sun, get one free"
+    if ((m = /\bbuy\s+(?:one|1|2|two|3|three|any)\s+(?!get\b)([a-z][a-z0-9 '’&+:-]{2,60}?)(?=\s*(?:,|\(|\band (?:get|use|save|receive)\b|\bget\b|$))/i.exec(t)) && labelOk(tidyLabel(m[1]))) return { type: 'category', label: capFirst(tidyLabel(m[1])), min: p.minSpend || null };
+    if (ctx.headline && !ctx._h) {
+      var hs = scopeOf(ctx.headline, { terms: p, _h: true });
+      if (hs.type === 'category') return hs;
+    }
+    // Who-can-use-it words only count from the offer's own words, not a whole fine-print page.
+    var pl = ctx.terms ? parseTerms(line, '', {}) : p;
+    if (ORDER_WORDS.test(t) || p.minSpend || (p.tiers && p.tiers.length) || pl.verify || pl.signup || pl.newCust || pl.storeCard) return { type: 'order', label: null, min: p.minSpend || null };
+    if (before) return { type: 'category', label: before };
+    if (ctx.code && (p.pct || p.amt)) return { type: 'order', label: null, assumed: true };
+    if (ctx.section && labelOk(tidyLabel(ctx.section)) && !/[$%]/.test(ctx.section)) return { type: 'category', label: capFirst(tidyLabel(ctx.section)) };
+    return { type: 'unknown', label: null };
+  }
+
+  function capFirst(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // Banners often split a phrase over two lines ("15% OFF YOUR · NEXT PURCHASE").
+  function joinSplit(s) { return String(s || '').replace(/\b(by|from|for|of|your|the|an?|on|with|and|&)\s+·\s+/gi, '$1 '); }
+
+  // The section name a call-to-action points at ("Shop Men's Golf" → "Men's Golf").
+  function sectionFromCta(links, domain) {
+    var labels = uniq(links.filter(function (l) { return CTA_RE.test(l.label || l.aria || ''); }).map(function (l) { return (l.label || l.aria).toLowerCase(); }));
+    if (labels.length > 1) return null;
+    for (var i = 0; i < links.length; i++) {
+      var l = links[i];
+      if (TERMS_LINK.test(l.label) && !CTA_RE.test(l.label)) continue;
+      var m = /^(?:shop|buy|see|view|browse|explore|discover|find)\s+(?:the\s+|all\s+|our\s+|now\s*[:\-]?\s*)?(.{3,50})$/i.exec(l.label || l.aria || '');
+      if (m && !/^(now|all|more|it|the sale|sale|deals?|here|this|them|collection|styles?|offers?)$/i.test(m[1].trim())) return tidyLabel(m[1]);
+    }
+    return null;
+  }
+
+  function pathLabel(url) {
+    try {
+      var segs = new URL(url).pathname.split('/').filter(Boolean).filter(function (s) { return !/^(en|us|en-us|en_us|c|s|b|l|shop|browse|category|categories|collections?|cat|pages|feature|landing|campaign)$/i.test(s) && !/^\d+$/.test(s) && !/\.[a-z]{2,4}$/i.test(s) || /^[a-z-]+\.(html?|jsp)$/i.test(s); });
+      var last = segs[segs.length - 1];
+      if (!last) return null;
+      var multi = /[-_]/.test(last.replace(/\.[a-z]{2,4}$/i, ''));
+      last = last.replace(/\.[a-z]{2,4}$/i, '').replace(/[-_]+/g, ' ').replace(/\b(cat|id)\d+\b/gi, '').replace(/\d{4,}/g, '').replace(/^(?:up to )?\d{1,3} (?:percent |pct )?off /i, '').trim();
+      if (!last || last.length < 3 || /^(sale|deals?|offers?|promotions?|default|index|home|division|category|product|item)$/i.test(last)) return null;
+      // A single path word only counts when it is a common section name.
+      if (!multi && !/^(men|mens|women|womens|kids|boys|girls|baby|shoes|sneakers|boots|sandals|clothing|apparel|accessories|bags|handbags|jewelry|watches|beauty|makeup|skincare|fragrance|hair|home|furniture|bedding|bath|kitchen|dining|outdoor|patio|garden|electronics|computers|laptops|tablets|tvs|audio|headphones|cameras|gaming|toys|pets|sports|fitness|golf|outlet|clearance|gifts|holiday|halloween|christmas|mattresses|pillows|sheets|towels|rugs|lighting|decor|tools|appliances|grocery|health|vitamins|outerwear|jackets|sweaters|jeans|denim|dresses|tops|activewear|swim|lingerie|underwear|socks|hats|sunglasses|luggage|travel|books|music|movies|games|office|school|crafts|party|wedding|bridal)$/i.test(last)) return null;
+      if (JUNK_LABEL.test(last)) return null;
+      return capFirst(last);
+    } catch (e) { return null; }
+  }
+
+  // Everything promotional on one page, each with its box, links and fine print.
+  function findOffers(root, base, domain, ctx) {
+    ctx = ctx || {};
+    var seeds = [];
+    walk(root, function (n) {
+      if (n.t === 'head') return false;
+      if (n.t === '#' && SEED_RE.test(n.v) && (!n.p || !inCard(n) || /\bcode\b/i.test(n.v))) seeds.push(n);
+    });
+    // Seeds split across tags ("40%" <span>"off"</span>): check small elements too.
+    walk(root, function (n) {
+      if (n.t === 'head' || n._card) return false;
+      if (n.t === '#' || textLen(n) > 120 || textLen(n) < 4) return;
+      var t = lineText(n, 200);
+      if (SEED_RE.test(t)) {
+        var dup = false;
+        walk(n, function (x) { if (x.t === '#' && seeds.indexOf(x) >= 0) { dup = true; return false; } });
+        if (!dup) seeds.push(n);
+        return false;
+      }
+    });
+    var foots = ctx.footnotes || footnotesIn(root);
+    var groups = [];
+    var byLine = new Map();
+    seeds.forEach(function (s) {
+      var ln = lineOf(s);
+      if (byLine.has(ln)) return;
+      var lt = lineText(ln, 400);
+      if (lt.length < 5 || JUNK_LINE.test(lt)) return;
+      if (/\?\s*$/.test(lt) && !extractCodes(lt).length) return;
+      if (FOOT_START.test(lt) && lt.length > 80) return;
+      var nav = isNavLike(ln);
+      var cont = containerOf(ln);
+      var tile = tileOf(ln, base);
+      if (tile && !extractCodes(lt).length) return;
+      var g = { line: ln, text: lt, cont: tile || cont, nav: nav, tile: tile };
+      byLine.set(ln, g);
+      groups.push(g);
+    });
+    var out = [];
+    var seen = {};
+    groups.forEach(function (g) {
+      var ctext = nodeText(g.cont, 2400);
+      var ctl = lineText(g.cont, 2400);
+      // A short follow-on line belongs to the deal ("with code: LEAF10", "WITH YOUR L.L.BEAN MASTERCARD").
+      var clines = ctext.split('\n').map(clean).filter(Boolean);
+      var li = clines.indexOf(g.text);
+      var pv0 = readValues(g.text);
+      if (li > 0 && extractCodes(g.text).length && !(pv0.pct || pv0.amt || pv0.tiers || pv0.bogoV || pv0.cashPct)) {
+        for (var pb = li - 1; pb >= 0 && pb >= li - 2; pb--) {
+          var pl = clines[pb];
+          var pvv = readValues(pl);
+          if (pl.length <= 140 && (pvv.pct || pvv.amt || pvv.tiers || pvv.bogoV) && !extractCodes(pl).length) { g.text = pl + ' ' + g.text; break; }
+        }
+      }
+      if (li >= 0) {
+        for (var nx = li + 1; nx < clines.length && nx <= li + 2; nx++) {
+          var nl = clines[nx];
+          if (nl.length > 90) break;
+          if (/^(?:with|when|for|on|using|in stores|online|plus|valid|through|thru)\b/i.test(nl) && !(SEED_RE.test(nl) && !/\bcode\b/i.test(nl) && !/^(?:with|when)\b/i.test(nl))) g.text = g.text + ' ' + nl;
+          else break;
+        }
+      }
+      var lineIsHeading = /^h[1-6]$/.test(g.line.t) || /(heading|headline|\btitle\b|-title|title-)/.test(cls(g.line));
+      var head = lineIsHeading ? null : headingIn(g.cont, g.text, g.line);
+      var links = linksIn(g.cont, base);
+      var lp = g.line._o;
+      links.sort(function (a, b) { return Math.abs(a.o - lp) + (a.o < lp ? 1e6 : 0) - (Math.abs(b.o - lp) + (b.o < lp ? 1e6 : 0)); });
+      var cta = links.filter(function (l) { return (!domain || sameStore(l.url, domain)) && !TERMS_LINK.test(l.label + ' ' + l.url.replace(/^https?:\/\/[^/]+/, '')) ; });
+      var termLinks = links.filter(function (l) { return (!domain || sameStore(l.url, domain)) && (TERMS_LINK.test(l.label) || /#(?:terms|details|legal|disclaimer|exclusions|offer)|\/(?:terms|offer-?details|promo-?details|exclusions|legal\/promo|promotions?\/details|coupon-?terms)/i.test(l.url)); });
+      var code = extractCodes(g.text)[0] || null;
+      if (!code && /\b(?:code|coupon)\b/i.test(g.text)) {
+        var codes = extractCodes(ctl);
+        if (codes.length === 1) code = codes[0];
+      }
+      // Tiered offers in one line or in neighboring lines ("$25 off $150 · $50 off $250").
+      var tierText = g.text;
+      var tiers = tiersIn(tierText);
+      if (tiers.length < 2) { var ct = tiersIn(ctl); if (ct.length >= 2) { tiers = ct; tierText = ct.map(function (x) { return '$' + x.amt + ' off $' + x.min; }).join(', '); } }
+      var line = g.text;
+      var scopeText = g.text;
+      if (tiers.length >= 2) {
+        if (line.length < 40 && !/,|·/.test(line)) line = tierText;
+        scopeText = ctext.split('\n').filter(function (l) { return tiersIn(l).length || /\b(?:buy|spend) more\b|\bsave more\b|\bon\s+[a-z]/i.test(l); }).join(' · ') || g.text;
+      }
+      var section = sectionFromCta(cta, domain) || (head && head !== line ? head : null);
+      var marks = (/(\*{1,4}|†{1,3}|‡{1,2})/.exec(line) || [])[1] || null;
+      // Fine print: in the box, a matching footnote, or a terms link.
+      var fine = [];
+      ctext.split('\n').forEach(function (l) {
+        l = clean(l);
+        if (l && l !== line && l !== head && l.length > 12 && (FOOT_START.test(l) || /\b(exclu|valid|expires|ends|not valid|limit|applies|eligible|while supplies|minimum|max|only)\b/i.test(l)) && !CTA_RE.test(l)) fine.push(l);
+      });
+      var p0 = parseTerms(line, '', {});
+      foots.forEach(function (f) {
+        if (f.node === g.cont) return;
+        var hit = false;
+        if (marks && f.marks === marks) hit = true;
+        if (code && f.text.toUpperCase().indexOf(code) >= 0) hit = true;
+        if (!hit && p0.pct && new RegExp('\\b' + p0.pct + '\\s?%').test(f.text) && f.text.length < 2500) hit = true;
+        if (!hit && p0.amt && new RegExp('\\$\\s?' + p0.amt + '(?:\\.00)?\\b').test(f.text) && f.text.length < 2500) hit = true;
+        if (hit) fine.push(pickRelevant(f.text, [code, p0.pct ? p0.pct + '%' : null, p0.amt ? '$' + p0.amt : null], 1400));
+      });
+      var lineCodes = extractCodes(g.text);
+      if (lineCodes.length >= 2) {
+        g.text.split(/,?\s+or\s+(?=(?:get\s+|take\s+|save\s+)?(?:an?\s+)?(?:extra\s+)?(?:\d{1,2}\s?%|\$\s?\d))|;\s*|\s+·\s+/i).forEach(function (part) {
+          var c2 = extractCodes(part)[0];
+          if (!c2 || seen['C|' + c2]) return;
+          seen['C|' + c2] = 1;
+          out.push({ line: part.trim(), scopeText: part.trim(), headline: head, section: section, code: c2, tiers: [], fine: uniq(fine).join(' ').slice(0, 2200), termsUrls: termLinks.map(function (l) { return l.url; }).slice(0, 2), landing: cta.length ? cta[0].url : null, landingLabel: cta.length ? cta[0].label : null, context: ctl.slice(0, 900), nav: g.nav });
+        });
+        return;
+      }
+      if (code && seen['C|' + code]) return;
+      if (code) seen['C|' + code] = 1;
+      var key = tiers.length >= 2 ? 'T:' + tiers.map(function (x) { return x.amt + '/' + x.min; }).join(',') : (code || '') + '|' + normName(line).slice(0, 60);
+      if (seen[key]) return;
+      seen[key] = 1;
+      if (g.tile && code) {
+        var pname = nameIn(g.tile, base);
+        var plink = linkIn(g.tile, base, domain, pname);
+        if (pname && plink) {
+          var pp = amounts(lineText(g.tile, 700).split(pname).join(' ')).filter(function (a) { return !a.off; }).map(function (a) { return a.v; });
+          out.push({ ownLink: plink, line: tidyTitle(g.text, code), scopeText: g.text, headline: null, section: null, code: code, tiers: [], fine: '', termsUrls: [], landing: plink, context: lineText(g.tile, 600), nav: null, product: { name: pname, price: pp.length ? Math.min.apply(null, pp) : null } });
+        }
+        return;
+      }
+      var own = null;
+      for (var up = g.line, k2 = 0; up && k2 < 4; up = up.p, k2++) if (up.t === 'a' && up.a.href) { own = absUrl(up.a.href, base); break; }
+      if (!own) { var inner = []; walk(g.line, function (y) { if (y.t === 'a' && y.a.href) inner.push(y); }); if (inner.length === 1) own = absUrl(inner[0].a.href, base); }
+      if (own && domain && !sameStore(own, domain)) own = null;
+      if (own && TERMS_LINK.test(own.replace(/^https?:\/\/[^/]+/, '')) && /terms|details|exclusions|legal/i.test(own)) own = null;
+      var landing = own || (cta.length ? cta[0].url : null);
+      if (g.nav && !own && !code) return;
+      out.push({
+        ownLink: own, line: line, scopeText: scopeText, headline: head, section: section, code: code, tiers: tiers,
+        fine: uniq(fine).join(' ').slice(0, 2200), termsUrls: termLinks.map(function (l) { return l.url; }).slice(0, 2),
+        landing: landing, landingLabel: cta.length ? cta[0].label : null, context: ctl.slice(0, 900), nav: g.nav
+      });
+    });
+    var byLanding = {};
+    var keep = [];
+    out.forEach(function (o) {
+      var pv = parseTerms(o.line, '', {});
+      var sig = o.landing && !o.code ? o.landing.split('#')[0] + '|' + (pv.headline || '') : null;
+      if (sig && byLanding[sig]) {
+        var other = byLanding[sig];
+        if (o.line.length > other.line.length) { keep[keep.indexOf(other)] = o; byLanding[sig] = o; }
+        return;
+      }
+      if (sig) byLanding[sig] = o;
+      keep.push(o);
+    });
+    return keep;
+  }
+
+  function uniq(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
+
+  var NAV_SEG = /^(?:shop(?: now| all| the sale| women| men| kids| girls| boys| baby| home| deals| more)?|learn more|details|see details|offer details|sale|clearance|deals?|new|buy now|get started|sign in|join|sign in or join|terms apply|exclusions apply|\*+|view all|see all|explore|discover|apply|activate|founded in \d{4})[.!*]*$/i;
+  // The part of a line that is the deal ("40% Off Everything, 50% Off Cardmembers!"),
+  // without menu words and neighbouring promotions.
+  function tidyTitle(line, code) {
+    line = joinSplit(line);
+    var segs = String(line || '').split(/\s+·\s+/).map(function (x) { return clean(x).replace(/\s+(?:shop now|learn more|shop the sale|details|see details)[.!]*$/i, ''); }).filter(Boolean);
+    if (segs.length <= 1) return clean(String(line || '').replace(/\s+(?:shop now|learn more|details)[.!]*$/i, ''));
+    var idx = [];
+    // Start at the piece that states the value. A code's own name can also appear in a
+    // banner title ("THE LONG WEEKEND EVENT!" for code WEEKEND), so the code only decides
+    // when no piece states a value.
+    segs.forEach(function (sg, i) { if (SEED_RE.test(sg)) idx.push(i); });
+    if (!idx.length && code) segs.forEach(function (sg, i) { if (sg.toUpperCase().indexOf(code) >= 0) idx.push(i); });
+    if (!idx.length) return segs.filter(function (sg) { return !NAV_SEG.test(sg); }).join(' · ');
+    var first = idx[0];
+    var keep = [];
+    // Short pieces right before the value ("Buy 1 Get 1", "Treat of the Week") and the
+    // words right after it ("Everything Photo") belong to the same deal.
+    var prev = first > 0 ? segs[first - 1] : '';
+    if (prev && prev.length <= 40 && !NAV_SEG.test(prev) && !SEED_RE.test(prev) && (/[:!]$/.test(prev) || /^(?:buy|bogo|today|tonight|this week|treat|extra|plus|deal|flash|limited|weekend|friends|members?|rewards?)\b/i.test(prev))) keep.push(prev);
+    keep.push(segs[first]);
+    for (var i = first + 1; i < segs.length && keep.join(' ').length < 160; i++) {
+      var sg = segs[i];
+      if (NAV_SEG.test(sg)) continue;
+      var joined = /(?:\+|\bplus|\band)\s*$/i.test(keep[keep.length - 1]);
+      if (SEED_RE.test(sg) && !joined && !(code && sg.toUpperCase().indexOf(code) >= 0) && !/^\+|^plus\b/i.test(sg) && !/^(?:free|\d{1,2}\s?%\s*off)$/i.test(sg)) break;
+      if (joined) { keep.push(sg); continue; }
+      if (keep.join(' ').toLowerCase().indexOf(sg.toLowerCase()) >= 0) continue;
+      var cond = /^(?:with|w\/|for|on|select|code|use code|valid|online|in[- ]stores?|excl|ends?|through|thru|until|today|mix|plus|\+|limit|only|members?|when|min)/i.test(sg);
+      if (!cond && (sg.length > 48 || /[.!?]\s*$/.test(sg) && sg.split(/\s+/).length > 3)) break;
+      if (/^(?:with code|use code|code)\b/i.test(sg) || sg.length <= 60 || /^(?:\+|plus\b|on\b|for\b|select\b)/i.test(sg)) keep.push(sg); else break;
+    }
+    return keep.join(' · ').replace(/\s*·\s*(?=[,.!])/g, '').replace(/\s*(\+|\bplus)\s*·\s*/gi, ' $1 ').replace(/^shop\s+(?=\d|\$)/i, '').replace(/^\+\s*/, '').replace(/,?\s*limited offer\.?$/i, '').replace(/\s+\d{1,2}$/, '');
+  }
+
+  // The sentences of a long terms text that mention this offer.
+  function pickRelevant(text, keys, max) {
+    text = clean(text);
+    max = max || 1400;
+    if (text.length <= max) return text;
+    var sents = text.split(/(?<=[.!?])\s+(?=[A-Z*†‡(])/);
+    var keep = [];
+    sents.forEach(function (s, i) {
+      if (keys.some(function (k) { return k && s.toUpperCase().indexOf(String(k).toUpperCase()) >= 0; })) {
+        keep.push(i);
+        if (i + 1 < sents.length) keep.push(i + 1);
+        if (i + 2 < sents.length) keep.push(i + 2);
+      }
+    });
+    var picked = uniq(keep.map(String)).map(Number).sort(function (a, b) { return a - b; }).map(function (i) { return sents[i]; });
+    var out = (picked.length ? picked : sents).join(' ');
+    return out.length > max ? out.slice(0, max - 1).replace(/\s+\S*$/, '') + '…' : out;
+  }
+
+  function tiersIn(text) {
+    var out = [];
+    var seen = {};
+    var re = /\$\s?(\d[\d,]*)(?:\.\d{2})?\s*off\s*(?:(?:your\s+)?(?:orders?|purchases?)\s+(?:of\s+)?)?\$\s?(\d[\d,]*)(?:\.\d{2})?\+?|spend\s*\$\s?(\d[\d,]*)\+?\s*(?:,|and|&|\s)?\s*(?:get|save|take)\s*\$\s?(\d[\d,]*)(?:\s*off)?/gi;
+    var m;
+    while ((m = re.exec(text)) !== null) {
+      var amt = num(m[1] || m[4]);
+      var min = num(m[2] || m[3]);
+      if (!(amt > 0 && min > amt)) continue;
+      if (seen[amt + '/' + min]) continue;
+      seen[amt + '/' + min] = 1;
+      out.push({ amt: amt, min: min });
+    }
+    out.sort(function (a, b) { return a.min - b.min; });
+    return out;
+  }
+
+  // Terms on a separate page: the section a link points at, or the terms heading.
+  function termsFromPage(root, url, keys) {
+    var frag = null;
+    try { frag = decodeURIComponent(new URL(url).hash.slice(1)); } catch (e) { }
+    var target = null;
+    if (frag) walk(root, function (n) { if (!target && n.a && (n.a.id === frag || n.a.name === frag)) { target = n; return false; } });
+    var chunks = [];
+    function grabFrom(n) {
+      var t = nodeText(n, 6000);
+      if (textLen(n) < 60 && n.p) {
+        // An anchor or heading: take what follows it.
+        var sib = n.p.c;
+        var i = sib.indexOf(n);
+        var buf = [t];
+        for (var k = i + 1; k < sib.length && buf.join(' ').length < 5000; k++) {
+          if (sib[k].t && /^h[1-3]$/.test(sib[k].t) && buf.length > 1) break;
+          buf.push(nodeText(sib[k], 3000));
+        }
+        t = buf.join('\n');
+        if (t.length < 80 && n.p.p) t = nodeText(n.p, 6000);
+      }
+      return t;
+    }
+    if (target) chunks.push(grabFrom(target));
+    if (!chunks.length || chunks[0].length < 60) {
+      walk(root, function (n) {
+        if (chunks.length >= 3) return false;
+        var ht = /^h[1-6]$/.test(n.t) ? lineText(n, 200) : '';
+        if (ht && /terms|details|exclusions|disclaimer|fine print|offer|promotion/i.test(ht) && !/trademark|copyright|privacy|cookie|accessibility|careers/i.test(ht)) chunks.push(grabFrom(n));
+        else if (n.a && /(terms|disclaimer|offer-?details|exclusion|fine-?print|promo-?details)/.test(cls(n)) && !/(trademark|copyright|privacy|cookie)/.test(cls(n)) && textLen(n) > 80) { chunks.push(nodeText(n, 6000)); return false; }
+      });
+    }
+    var text = clean(chunks.join(' ').replace(/\n+/g, ' '));
+    if (text.length < 40) return null;
+    if (!/valid|offer|exclu|discount|purchase|order|promotion|expires|code|eligible|savings|minimum/i.test(text)) return null;
+    return pickRelevant(text, keys, 1800);
+  }
+
+  function pageTitle(root) {
+    var t = null;
+    var h1 = null;
+    walk(root, function (n) {
+      if (!t && n.t === 'title') t = lineText(n, 200);
+      if (!h1 && n.t === 'h1') h1 = lineText(n, 200);
+      if (t && h1) return false;
+    });
+    return { title: t, h1: h1 };
+  }
+
+  // Deal pages linked from a store's menu ("Sale", "Deals", "Coupons").
+  function dealLinks(root, base, domain) {
+    var found = [];
+    walk(root, function (n) {
+      if (n.t !== 'a' || !n.a.href) return;
+      var u = absUrl(n.a.href, base);
+      if (!u || !sameStore(u, domain)) return;
+      var label = clean(lineText(n, 120) || n.a['aria-label'] || '');
+      var path = u.replace(/^https?:\/\/[^/]+/, '').split('#')[0];
+      var s = 0;
+      if (/^(sale|deals?|today'?s deals|top deals|hot deals|offers|special offers|current offers|weekly (?:ad|deals)|clearance|promotions?|coupons?(?: & deals)?|coupons and deals|deals (?:&|and) (?:offers|coupons)|shop (?:the )?sale|shop (?:all )?deals|all deals|outlet|markdowns|savings|discounts?|specials|sale & clearance|deals of the (?:day|week))$/i.test(label)) s += 5;
+      if (/\/(sale|deals?|offers?|clearance|promotions?|coupons?|outlet|specials|savings|discounts?|markdowns?)(\/|$|\?|\.|-|_)/i.test(path)) s += 3;
+      if (/(gift|card|credit|account|help|store-?locator|careers|blog|login|registry|financing|students?|military|terms|legal|policy|policies|faq|privacy|disclaimer)/i.test(path + ' ' + label)) s -= 6;
+      if (s >= 3) found.push({ url: u.split('#')[0], label: label, s: s });
+    });
+    var seen = {};
+    return found.sort(function (a, b) { return b.s - a.s; }).filter(function (f) { if (seen[f.url]) return false; seen[f.url] = 1; return true; });
+  }
+
+  // Read one page: promotions and products, each with full context.
+  function readPage(html, opts) {
+    opts = opts || {};
+    var root = typeof html === 'string' ? parseHTML(html) : html;
+    var order = 0;
+    walk(root, function (n) { n._o = order++; });
+    var base = opts.url || 'https://' + (opts.domain || 'example.com') + '/';
+    var products = productsFromLd(root, base);
+    var seenP = {};
+    products.forEach(function (p) { seenP[p.url + '|' + p.name] = 1; });
+    findProducts(root, base, opts.domain).forEach(function (p) { if (!seenP[p.url + '|' + p.name]) products.push(p); });
+    var foots = footnotesIn(root);
+    var offers = findOffers(root, base, opts.domain, { footnotes: foots });
+    var t = pageTitle(root);
+    return { root: root, offers: offers, products: products, footnotes: foots, title: t.title, h1: t.h1, deals: opts.domain ? dealLinks(root, base, opts.domain) : [] };
+  }
+
+  // Turn what a page showed into stored deal records. Only deals that say what they
+  // are worth, what they apply to and where to use them are kept.
+  function recordsFromPage(page, info, now) {
+    now = now || new Date();
+    var recs = [];
+    var dropped = [];
+    var sectionOfPage = info.pageLabel || null;
+    (page.offers || []).forEach(function (o) {
+      if (o.code && /\bno (?:promo |coupon |discount )?code (?:needed|required|necessary)\b/i.test(o.line) && o.line.toUpperCase().indexOf(o.code) < 0) o.code = null;
+      // One banner line can hold two offers ("Up to 50% off almost everything, no code needed …
+      // Free shipping on $99+ with code SHIP99"). A code keeps only the words of its own offer.
+      if (o.code && !o.product) {
+        var own = codePart(o.line, o.code);
+        if (own) { if (!o.headline && own.rest.length < 60) o.headline = own.rest; o.line = own.part; o.scopeText = own.part; }
+      }
+      if (o.nav && !o.ownLink && !o.code) { dropped.push({ why: 'menu link without its own page', line: o.line }); return; }
+      var title = tidyTitle(o.line, o.code);
+      if (o.code && title.toUpperCase().indexOf(o.code) < 0) title = /\bcode\s*:?\s*$/i.test(title) ? title + ' ' + o.code : title + ' (code ' + o.code + ')';
+      if (o.tiers.length >= 2) title = (o.headline && o.headline.length < 60 ? o.headline.replace(/[*†‡]+/g, '') + ': ' : 'Spend more, save more: ') + o.tiers.map(function (x) { return money(x.amt) + ' off ' + money(x.min); }).join(', ');
+      var terms = [o.fine, o.termsText].filter(Boolean).join(' ');
+      var p = parseTerms(title + (o.headline ? ' · ' + o.headline : ''), terms, { refDate: now, code: o.code });
+      var hasValue = p.pct || p.amt || p.bogo || p.cashPct || p.cashAmt || (p.tiers && p.tiers.length) || (p.freeShip && p.freeShipMin);
+      if (!hasValue && !o.code) { dropped.push({ why: 'no value', line: o.line }); return; }
+      var sctx = { code: o.code, section: o.section || o.landingTitle || sectionOfPage, terms: p, headline: o.headline };
+      var base = o.tiers.length >= 2 ? (o.scopeText || o.line) : title;
+      var scope = o.product ? { type: 'product', label: o.product.name + (o.product.price ? ' (' + money(o.product.price) + ' before the code)' : '') } : scopeOf(base, sctx);
+      // The tidy title can drop the words that say what's covered ("BOGO 50% Off · Fireside socks…").
+      var fromSection = scope.type === 'category' && sctx.section && scope.label === capFirst(tidyLabel(sctx.section));
+      if (!o.product && (scope.type === 'unknown' || scope.assumed || fromSection) && o.scopeText && o.scopeText !== base) {
+        var s2 = scopeOf(o.scopeText, { code: o.code, terms: p });
+        if (s2.type !== 'unknown' && !s2.assumed) scope = s2;
+      }
+      if (scope.type === 'category' && /\b(?:order[- ]level|qualifying orders?|applies to (?:your |the )?(?:entire |whole )?(?:order|purchase)|entire (?:order|purchase)|sitewide|site-wide)\b/i.test(o.termsText || '') && !/\bselect(?:ed)?\b|\bonly (?:on|applies to) /i.test(o.termsText || '')) scope = { type: 'order', label: null, min: p.minSpend || null, note: scope.label };
+      var lt2 = o.landingTitle ? tidyLabel(o.landingTitle.replace(/^shop\s+(?:the\s+|all\s+)?/i, '')) : null;
+      if (scope.type === 'unknown' && lt2 && labelOk(lt2)) scope = { type: 'category', label: capFirst(lt2) };
+      if (scope.type === 'unknown' && o.landing) { var pl = pathLabel(o.landing); if (pl) scope = { type: 'category', label: pl }; }
+      if (scope.type === 'unknown' || (!hasValue && scope.assumed)) { dropped.push({ why: "can't tell what it applies to", line: o.line }); return; }
+      if (o.items && o.items.length && scope.type === 'category') scope.items = o.items.slice(0, 8).map(shortItem);
+      if (!hasValue && o.code && scope.type === 'category' && scope.label && title.toLowerCase().indexOf(scope.label.toLowerCase()) < 0) title = title.replace(/[.\s]+$/, '') + ' (for ' + scope.label.charAt(0).toLowerCase() + scope.label.slice(1) + ')';
+      if (scope.type === 'order' && p.minSpend) scope.min = p.minSpend;
+      var url = o.landing || info.url;
+      if (!url) { dropped.push({ why: 'no link', line: o.line }); return; }
+      recs.push(makeRecord({
+        domain: info.domain, brand: info.brand, kind: o.code ? 'code' : 'sale', title: title, code: o.code,
+        headline: o.headline && o.headline !== title ? o.headline : null, section: o.section || null,
+        terms: terms, termsUrl: o.termsSource || (o.fine ? info.url : null), termsFound: !!terms,
+        scope: scope, url: url, pageUrl: info.url, cat: info.cat, sourceType: info.sourceType || 'official',
+        sourceName: info.sourceName || (info.brand + ' website')
+      }, now));
+    });
+    // The same promotion often shows twice on a page (banner and menu). Keep the fuller copy.
+    var bySig = {};
+    var kept = [];
+    recs.forEach(function (r) {
+      var d = r.data;
+      var pv = parseTerms(d.title, d.terms, {});
+      var sig = d.code ? 'C|' + d.code : (pv.headline || d.title) + '|' + (d.scope ? d.scope.type + ':' + (d.scope.label || '') : '');
+      var prev = bySig[sig];
+      if (prev) {
+        var better = (d.terms.length + d.title.length) > (prev.data.terms.length + prev.data.title.length * 0.5);
+        if (better) { kept[kept.indexOf(prev)] = r; bySig[sig] = r; }
+        dropped.push({ why: 'duplicate', line: d.title });
+        return;
+      }
+      bySig[sig] = r;
+      kept.push(r);
+    });
+    recs = kept;
+    (page.products || []).forEach(function (pr) {
+      if (!pr.url || !pr.name || !(pr.was > pr.price)) return;
+      recs.push(productRecord(pr, info, now));
+    });
+    return { records: recs, dropped: dropped };
+  }
+
+  function codePart(line, code) {
+    var parts = String(line || '').split(/\s+(?:see (?:promo |offer )?details|learn more|shop now)\b[.!]*\s*|\s+·\s+|(?<=[.!])\s+(?=[A-Z+])/i).map(clean).filter(Boolean);
+    if (parts.length < 2) return null;
+    var i = -1;
+    var esc = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var withWord = new RegExp('\\bcode\\s*:?\\s*["“]?' + esc + '\\b', 'i');
+    var bare = new RegExp('\\b' + esc + '\\b');
+    parts.forEach(function (pt, k) { if (i < 0 && withWord.test(pt)) i = k; });
+    parts.forEach(function (pt, k) { if (i < 0 && bare.test(pt)) i = k; });
+    if (i < 0) return null;
+    var part = parts[i];
+    if (!SEED_RE.test(part.replace(/\b(?:use |with |promo |coupon )?code\s*:?\s*\S+/ig, '')) && i > 0) part = parts[i - 1] + ' · ' + part;
+    var rest = parts.filter(function (pt) { return part.indexOf(pt) < 0; }).join(' · ');
+    // Only split when the rest is a different offer with its own value.
+    if (!rest || !SEED_RE.test(rest)) return null;
+    return { part: part, rest: rest };
+  }
+
+  function shortItem(pr) {
+    return { n: pr.name, u: pr.url, p: pr.price, w: pr.was, i: pr.img || null, s: pr.stock || null };
+  }
+
+  function productRecord(pr, info, now) {
+    var pct = Math.round((1 - pr.price / pr.was) * 100);
+    return makeRecord({
+      domain: info.domain, brand: info.brand, kind: 'product', title: pr.name, url: pr.url,
+      product: { name: pr.name, price: pr.price, was: pr.was, img: pr.img || null, stock: pr.stock || null, from: !!pr.from, pct: pct },
+      section: pr.section || info.pageLabel || null, terms: pr.text && pr.text.length > pr.name.length + 10 ? pr.text : '',
+      expires: pr.expires || null, cat: pr.cat || info.cat, sourceType: info.sourceType || 'official',
+      sourceName: info.sourceName || (info.brand + ' website'), pageUrl: info.url, price: pr.price
+    }, now);
+  }
+
+  // Builds the same node shape from a live page in Safari.
+  function fromDom(el) {
+    var root = { t: '#root', a: {}, c: [], p: null, ld: [] };
+    var lds = el.ownerDocument ? el.ownerDocument.querySelectorAll('script[type="application/ld+json"]') : [];
+    for (var i = 0; i < lds.length; i++) root.ld.push(lds[i].textContent || '');
+    var count = 0;
+    (function rec(d, parent) {
+      if (count++ > 60000) return;
+      for (var c = d.firstChild; c; c = c.nextSibling) {
+        if (c.nodeType === 3) {
+          var v = clean(c.nodeValue);
+          if (v) parent.c.push({ t: '#', v: v, p: parent });
+        } else if (c.nodeType === 1) {
+          var tag = c.tagName.toLowerCase();
+          if (SKIP_TAGS[tag] || c.hasAttribute('data-deal-stack')) continue;
+          var a = {};
+          for (var k = 0; k < c.attributes.length; k++) a[c.attributes[k].name.toLowerCase()] = c.attributes[k].value;
+          if (tag === 'img' && c.currentSrc) a.src = c.currentSrc;
+          if (tag === 'a' && c.href) a.href = c.href;
+          var node = { t: tag, a: a, c: [], p: parent };
+          parent.c.push(node);
+          if (c.shadowRoot) rec(c.shadowRoot, node);
+          rec(c, node);
+        }
+      }
+    })(el, root);
+    return root;
+  }
+
+  /* What a deal applies to, in plain words */
+  function appliesTo(d, p) {
+    var s = d.scope || {};
+    if (d.kind === 'product') return (d.product && d.product.name) || d.title;
+    if (d.kind === 'cardoffer') return 'Purchases at ' + d.brand + ' paid with ' + ((PROGRAMS[d.card] || {}).payWith || 'that card');
+    if (d.kind === 'portal') return 'Purchases at ' + d.brand + ' started from Capital One Shopping';
+    if (s.type === 'order') {
+      var t = 'Your whole order';
+      var min = s.min || (p && p.minSpend) || (p && p.freeShip && !p.pct && !p.amt && p.freeShipMin);
+      if (p && p.tiers && p.tiers.length) t += ', more off as you spend more (from ' + money(p.tiers[0].min) + ')';
+      else if (min) t += ' of ' + money(min) + ' or more';
+      if (p && p.exclSale) t += ', not counting sale items';
+      else if (p && (p.exclusions || p.select)) t += ' (some exclusions)';
+      if (s.assumed && !(p && (p.exclSale || p.exclusions || p.select))) t += ' (no limits were listed with the code)';
+      return t;
+    }
+    if (s.type === 'category') return s.label + (s.items && s.items.length ? ' (' + s.items.length + (s.items.length === 1 ? ' example item' : ' example items') + ' in the details)' : '');
+    if (s.type === 'items') return (s.items || []).length + ' specific items';
+    if (s.type === 'product') return s.label;
+    return 'Not stated';
+  }
+
+  function isWholeOrder(d) { return !!(d && d.scope && d.scope.type === 'order' && (d.kind === 'code' || d.kind === 'sale')); }
+
+  /* ------------------------------------------------------------------ */
   /* Records                                                             */
   /* ------------------------------------------------------------------ */
 
@@ -1198,7 +2334,7 @@
     var kind = raw.kind || (raw.code ? 'code' : 'sale');
     var code = raw.code ? String(raw.code).toUpperCase() : null;
     var title = clean(raw.title).slice(0, 220);
-    var terms = clean(raw.terms || '').slice(0, 1800);
+    var terms = clean(raw.terms || '').slice(0, 2400);
     var p = parseTerms(title, terms, { refDate: raw.posted || now, kind: kind, code: code, card: raw.card });
     var expires = raw.expires || p.expires || null;
     if (!expires && DEFAULT_LIFE[raw.sourceType]) {
@@ -1207,12 +2343,19 @@
     var id;
     if (kind === 'cardoffer') id = domain + '|card:' + (raw.card || 'other');
     else if (kind === 'portal') id = domain + '|portal:' + (raw.portal || 'c1shopping');
+    else if (kind === 'product') id = domain + '|P:' + hashStr(String(raw.url || title).split('#')[0].replace(/[?&](utm_[^&]*|ref[^&]*|cid=[^&]*)/g, '') + '|' + (raw.sourceType === 'community' ? 'c' : ''));
     else if (code) id = domain + '|C:' + code;
     else if (raw.sourceType === 'community' && raw.url) id = domain + '|L:' + hashStr(raw.url);
-    else id = domain + '|S:' + hashStr(normName(title).slice(0, 60));
+    else id = domain + '|S:' + hashStr(normName(title).slice(0, 60) + '|' + ((raw.scope && raw.scope.label) || ''));
     var brand = BY_DOMAIN[domain];
+    var scope = raw.scope ? {
+      type: raw.scope.type, label: raw.scope.label ? String(raw.scope.label).slice(0, 90) : null,
+      min: raw.scope.min || null, assumed: !!raw.scope.assumed,
+      items: (raw.scope.items || []).slice(0, 8).map(function (it) { return { n: String(it.n || '').slice(0, 120), u: it.u || null, p: it.p || null, w: it.w || null, i: it.i || null, s: it.s || null }; })
+    } : null;
+    if (scope && !scope.items.length) delete scope.items;
     var data = {
-      v: 1,
+      v: 2,
       domain: domain,
       brand: raw.brand || (brand && brand.name) || domain,
       kind: kind,
@@ -1220,22 +2363,42 @@
       code: code,
       url: raw.url || (brand && brand.url) || null,
       terms: terms,
+      termsUrl: raw.termsUrl || null,
+      termsFound: raw.termsFound == null ? !!terms : !!raw.termsFound,
+      headline: raw.headline ? clean(raw.headline).slice(0, 160) : null,
+      section: raw.section ? clean(raw.section).slice(0, 90) : null,
+      scope: scope,
+      product: raw.product ? { name: clean(raw.product.name).slice(0, 160), price: raw.product.price, was: raw.product.was || null, pct: raw.product.pct || (raw.product.was ? Math.round((1 - raw.product.price / raw.product.was) * 100) : null), img: raw.product.img || null, stock: raw.product.stock || null, from: !!raw.product.from } : null,
       cat: raw.cat || classify(title + ' ' + terms, brand ? brand.cat : null),
       sourceType: raw.sourceType || 'official',
       sourceName: raw.sourceName || '',
       sourceUrl: raw.sourceUrl || null,
+      pageUrl: raw.pageUrl || null,
       card: raw.card || null,
       portal: raw.portal || null,
-      price: raw.price || null,
+      price: raw.price || (raw.product && raw.product.price) || null,
       votes: raw.votes == null ? null : raw.votes,
       posted: raw.posted ? isoDay(raw.posted) : null,
       expires: expires,
       expSet: !!(raw.expires || p.expires),
-      item: !!(raw.item || raw.sourceType === 'costco' || (raw.sourceType === 'community' && raw.price) || p.singleItem),
+      item: !!(kind === 'product' || raw.item || raw.sourceType === 'costco' || (scope && scope.type === 'product') || p.singleItem),
       guessed: !!raw.guessed,
       personal: !!raw.personal
     };
+    if (!data.product) delete data.product;
+    if (!data.scope) delete data.scope;
     return { id: id, domain: domain, kind: kind, rank: SOURCE_RANK[data.sourceType] || 1, expires: expires, data: data };
+  }
+
+  // A deal is only kept when it says what it is worth, what it applies to and where to use it.
+  function isComplete(rec) {
+    var d = rec.data || rec.d || rec;
+    if (!d.url) return false;
+    if (d.kind === 'product') return !!(d.product && d.product.price > 0 && d.product.name);
+    if (d.kind === 'cardoffer' || d.kind === 'portal') return true;
+    var p = parseTerms(d.title, d.terms, {});
+    var hasValue = p.pct || p.amt || p.bogo || p.cashPct || p.cashAmt || (p.tiers && p.tiers.length) || (p.freeShip && p.freeShipMin) || d.price || d.code;
+    return !!(hasValue && d.scope && d.scope.type && d.scope.type !== 'unknown');
   }
 
   /* ------------------------------------------------------------------ */
@@ -1327,6 +2490,19 @@
     var n = ctx.sight && ctx.sight[rec.id];
     if (n && n > 1) { score += Math.min(16, 8 * (n - 1)); reasons.push({ t: 'Seen in ' + n + ' places', good: true }); }
 
+    var verdict = null;
+    if (d.kind === 'product' && d.product) {
+      verdict = priceVerdict(ctx.pstats && ctx.pstats[rec.id], d.product, now);
+      if (verdict) {
+        reasons.push({ t: verdict.text, good: verdict.good === true, bad: verdict.good === false });
+        if (verdict.code === 'always') score -= 12;
+        if (verdict.code === 'higher') score -= 8;
+        if (verdict.code === 'low') score += 6;
+      }
+      if (d.product.stock === 'out') { reasons.push({ t: 'Out of stock when last checked', good: false }); score -= 20; }
+    }
+    if ((d.kind === 'code' || d.kind === 'sale') && d.v >= 2 && !d.termsFound) reasons.push({ t: 'Terms not posted on the page it came from', good: false });
+
     var tests = (ctx.tests || []).filter(function (t) { return t.deal_id === rec.id; });
     tests.sort(function (a, b) { return a.at < b.at ? -1 : 1; });
     var status;
@@ -1346,7 +2522,21 @@
     if (expired) status = 'expired';
 
     score = Math.max(1, Math.min(99, Math.round(score)));
-    return { score: score, status: status, reasons: reasons, expires: expires, daysLeft: daysLeft, terms: p, tests: tests };
+    return { score: score, status: status, reasons: reasons, expires: expires, daysLeft: daysLeft, terms: p, tests: tests, verdict: verdict, applies: appliesTo(d, p), whole: isWholeOrder(d) };
+  }
+
+  // "Is it really a deal?": compares today's price with what the app has seen before.
+  // st: { first_seen, price, price_since, low, low_at, high_reg, days }
+  function priceVerdict(st, prod, now) {
+    now = now ? new Date(now) : new Date();
+    if (!st || !st.first_seen) return { code: 'new', text: 'Price tracking starts today. Check back to see if this price is unusual.', good: null };
+    var since = st.price_since ? Math.max(0, Math.floor((now.getTime() - Date.parse(st.price_since + 'T00:00:00Z')) / DAY)) : 0;
+    var tracked = Math.max(0, Math.floor((now.getTime() - Date.parse(String(st.first_seen).slice(0, 10) + 'T00:00:00Z')) / DAY));
+    if (st.low != null && prod.price > st.low + 0.009) return { code: 'higher', text: 'It was ' + money(st.low) + ' on ' + fmtDay(st.low_at) + ', lower than now', good: false };
+    if (tracked < 3) return { code: 'new', text: 'Price tracked since ' + fmtDay(st.first_seen) + '. Too soon to tell if it is unusual.', good: null };
+    if (since >= 21) return { code: 'always', text: 'Same "sale" price for ' + since + ' days, so it may just be the normal price', good: false };
+    if (since <= 3 && tracked >= 7) return { code: 'low', text: 'Lowest price since tracking began ' + fmtDay(st.first_seen), good: true };
+    return { code: 'steady', text: 'At this price for ' + since + (since === 1 ? ' day' : ' days') + '; the lowest seen since ' + fmtDay(st.first_seen), good: null };
   }
 
   var STATUS = {
@@ -1365,6 +2555,13 @@
   // Dollars saved on a cart of `amount`, plus how far short of a minimum you are.
   function dealValue(p, amount) {
     amount = amount || 100;
+    if (p.tiers && p.tiers.length >= 2) {
+      var got = null;
+      var next = null;
+      p.tiers.forEach(function (t) { if (amount >= t.min) got = t; else if (!next) next = t; });
+      if (!got) return { amt: 0, short: p.tiers[0].min - amount, next: { need: p.tiers[0].min - amount, amt: p.tiers[0].amt } };
+      return { amt: got.amt, short: 0, next: next ? { need: next.min - amount, amt: next.amt } : null };
+    }
     if (p.minSpend && amount < p.minSpend) return { amt: 0, short: p.minSpend - amount };
     var v = 0;
     if (p.pct) v = amount * p.pct / 100 * (p.upTo ? 0.4 : p.scoped ? 0.5 : 1);
@@ -1380,11 +2577,14 @@
   function isItemDeal(d, p) {
     if (!d) return !!(p && p.singleItem);
     if (d.kind === 'cardoffer' || d.kind === 'portal') return false;
+    if (d.kind === 'product') return true;
+    if (d.v >= 2) return !!(d.item || (d.scope && d.scope.type === 'product'));
     return !!(d.item || d.sourceType === 'costco' || (d.sourceType === 'community' && d.price) || (p && p.singleItem));
   }
 
   // A rough "percent off a typical order" used to rank deals against each other.
   function typicalPct(p, d) {
+    if (d && d.kind === 'product' && d.product) return Math.min(60, d.product.pct || 0);
     if (isItemDeal(d, p)) {
       if (p.pct) return Math.min(p.pct * (p.upTo ? 0.4 : 1), 40);
       if (p.amt && d && d.price) return Math.min(40, p.amt / (d.price + p.amt) * 100);
@@ -1475,10 +2675,14 @@
     var usable = (items || []).filter(function (x) { return x.a.status !== 'failed' && x.a.status !== 'expired'; });
 
     // Best store discount (a code or an automatic sale), weighed by how sure we are it works.
-    var discounts = usable.filter(function (x) { var t = x.a.terms; return (x.rec.d.kind === 'code' || x.rec.d.kind === 'sale') && !isItemDeal(x.rec.d, t) && !t.storeCard && !t.verify; }).map(function (x) {
+    // Only deals that take money off the whole order count here. Deals on certain
+    // items are listed separately, since they depend on what is in the cart.
+    var discounts = usable.filter(function (x) { var t = x.a.terms; var d = x.rec.d; return (d.kind === 'code' || d.kind === 'sale') && (d.v >= 2 ? isWholeOrder(d) : !isItemDeal(d, t)) && !t.storeCard && !t.verify && !t.newCust; }).map(function (x) {
       var v = dealValue(x.a.terms, amount);
-      return { x: x, value: v.amt, short: v.short, weighted: v.amt * (0.35 + 0.65 * x.a.score / 100) };
+      return { x: x, value: v.amt, short: v.short, next: v.next || null, weighted: v.amt * (0.35 + 0.65 * x.a.score / 100) };
     });
+    var partial = usable.filter(function (x) { var d = x.rec.d; return (d.kind === 'code' || d.kind === 'sale') && d.v >= 2 && !isWholeOrder(d) && d.scope && d.scope.type === 'category'; })
+      .sort(function (a, b) { return typicalPct(b.a.terms, b.rec.d) - typicalPct(a.a.terms, a.rec.d); }).slice(0, 3);
     discounts.sort(function (a, b) { return b.weighted - a.weighted; });
     var disc = discounts.length && discounts[0].value > 0 ? discounts[0] : null;
     var nearMiss = discounts.filter(function (d) { return d.short > 0; }).sort(function (a, b) { return a.short - b.short; })[0] || null;
@@ -1564,11 +2768,13 @@
 
     options.sort(function (a, b) { return (b.total - a.total) || (b.bonus - a.bonus) || (b.card.base - a.card.base); });
     var warnings = [];
-    if (nearMiss && (!disc || nearMiss.x.rec.id !== disc.x.rec.id)) {
-      var nv = dealValue(nearMiss.x.a.terms, nearMiss.x.a.terms.minSpend);
+    if (disc && disc.next && disc.next.amt > discAmt) warnings.push('Spend ' + money(disc.next.need) + ' more to get ' + money(disc.next.amt) + ' off instead of ' + money(discAmt) + '.');
+    else if (nearMiss && (!disc || nearMiss.x.rec.id !== disc.x.rec.id)) {
+      var nv = dealValue(nearMiss.x.a.terms, (nearMiss.x.a.terms.tiers ? nearMiss.x.a.terms.tiers[0].min : nearMiss.x.a.terms.minSpend));
       if (nv.amt > discAmt) warnings.push('Spend ' + money(nearMiss.short) + ' more to unlock ' + (nearMiss.x.a.terms.headline || 'a bigger discount') + '.');
     }
-    return { store: store, amount: amount, discount: disc, options: options, best: options[0] || null, warnings: warnings };
+    var also = partial.map(function (x) { return { x: x, text: (x.a.terms.headline || x.rec.d.title) + ' on ' + (x.rec.d.scope.label || 'certain items') + (x.rec.d.code ? ' (code ' + x.rec.d.code + ')' : '') }; });
+    return { store: store, amount: amount, discount: disc, options: options, best: options[0] || null, warnings: warnings, also: also };
   }
 
   /* ------------------------------------------------------------------ */
@@ -1602,11 +2808,15 @@
   function recommend(list, settings, extrasByDomain) {
     settings = settings || DEFAULT_SETTINGS;
     var cats = settings.categories || [];
+    var hidden = settings.hidden || [];
+    var favs = settings.favorites || [];
     var out = [];
     list.forEach(function (x) {
       var d = x.rec.d;
       if (x.a.status === 'failed' || x.a.status === 'expired') return;
       if (d.kind === 'portal') return;
+      if (hidden.indexOf(d.domain) >= 0) return;
+      if (d.kind === 'product' && d.product && d.product.stock === 'out') return;
       var why = [];
       var value = typicalPct(x.a.terms, d);
       if (d.kind === 'cardoffer') value = value * 0.9;
@@ -1623,7 +2833,15 @@
       if (x.a.daysLeft != null && x.a.daysLeft <= 3) { rank *= 1.12; why.push(x.a.daysLeft === 0 ? 'Ends today' : 'Ends in ' + x.a.daysLeft + (x.a.daysLeft === 1 ? ' day' : ' days')); }
       if (x.a.status === 'tested') { rank *= 1.15; why.push('Worked at checkout'); }
       var extra = extrasByDomain && extrasByDomain[d.domain];
-      if (extra && extra > 3 && d.kind !== 'cardoffer' && !isItemDeal(d, x.a.terms)) { rank *= 1 + Math.min(0.5, extra / 20); why.push('Stacks with ' + pctStr(extra) + ' more from your cards and offers'); }
+      if (extra && extra > 3 && d.kind !== 'cardoffer' && d.kind !== 'product' && !isItemDeal(d, x.a.terms)) { rank *= 1 + Math.min(0.5, extra / 20); why.push('Stacks with ' + pctStr(extra) + ' more from your cards and offers'); }
+      if (favs.indexOf(d.domain) >= 0) { rank *= 1.3; why.push('One of your stores'); }
+      if (x.a.verdict) {
+        if (x.a.verdict.code === 'always') rank *= 0.35;
+        else if (x.a.verdict.code === 'higher') rank *= 0.5;
+        else if (x.a.verdict.code === 'low') { rank *= 1.25; why.push('Lowest price we have seen'); }
+        else rank *= 0.8;
+      }
+      if (d.kind === 'code' && isWholeOrder(d)) rank *= 1.15;
       if (x.a.terms.newCust) rank *= 0.75;
       if (x.a.terms.verify) rank *= 0.7;
       if (x.a.terms.storeCard) rank *= 0.35;
@@ -1637,6 +2855,23 @@
     return out;
   }
 
+  // One line per store for the Stores list.
+  function storeSummary(domain, items) {
+    var s = { domain: domain, codes: 0, offers: 0, products: 0, cardOffers: 0, wholePct: 0, bestProductPct: 0, tested: 0, total: 0 };
+    (items || []).forEach(function (x) {
+      if (x.a.status === 'failed' || x.a.status === 'expired') return;
+      var d = x.rec.d;
+      s.total++;
+      if (d.kind === 'code') s.codes++;
+      else if (d.kind === 'sale') s.offers++;
+      else if (d.kind === 'product') { s.products++; if (!(d.product && d.product.stock === 'out')) s.bestProductPct = Math.max(s.bestProductPct, (d.product && d.product.pct) || 0); }
+      else s.cardOffers++;
+      if (x.a.status === 'tested') s.tested++;
+      if ((d.kind === 'code' || d.kind === 'sale') && isWholeOrder(d) && !x.a.terms.storeCard && !x.a.terms.newCust) s.wholePct = Math.max(s.wholePct, typicalPct(x.a.terms, d));
+    });
+    return s;
+  }
+
   /* ------------------------------------------------------------------ */
   /* Ready-made tips                                                     */
   /* ------------------------------------------------------------------ */
@@ -1648,7 +2883,8 @@
     { t: 'Codes can cancel portal rewards', b: 'Some stores drop shopping-portal cash back when you use a code the portal does not list. A big code is usually still worth it.' },
     { t: 'Pay with the card that earns most there', b: 'Savor for groceries, dining, streaming and entertainment. Costco Visa for gas, Costco and travel. Venture X or Quicksilver for everything else.' },
     { t: 'Watch the minimum', b: 'A "$20 off $100" code is 20% at $100 but nothing at $99. The Best Way tab tells you when a little more spend unlocks a bigger discount.' },
-    { t: 'Costco needs no clipping', b: "Costco's monthly member savings come off automatically at the register or online. Pay in the warehouse with a Visa credit card." }
+    { t: 'Costco needs no clipping', b: "Costco's monthly member savings come off automatically at the register or online. Pay in the warehouse with a Visa credit card." },
+    { t: 'Codes beat "was" prices', b: 'A code takes money off whatever the store charges today. A crossed-out "was" price can be inflated, so the app tracks product prices over time and tells you when a "sale" price never changes.' }
   ];
 
   return {
@@ -1673,6 +2909,31 @@
     hashStr: hashStr,
     clean: clean,
     isoDay: isoDay,
+    parseHTML: parseHTML,
+    nodeText: nodeText,
+    lineText: lineText,
+    walk: walk,
+    readPage: readPage,
+    recordsFromPage: recordsFromPage,
+    productRecord: productRecord,
+    shortItem: shortItem,
+    termsFromPage: termsFromPage,
+    pageTitle: pageTitle,
+    dealLinks: dealLinks,
+    findProducts: findProducts,
+    findOffers: findOffers,
+    scopeOf: scopeOf,
+    tiersIn: tiersIn,
+    pathLabel: pathLabel,
+    pickRelevant: pickRelevant,
+    fromDom: fromDom,
+    absUrl: absUrl,
+    sameStore: sameStore,
+    appliesTo: appliesTo,
+    isWholeOrder: isWholeOrder,
+    isComplete: isComplete,
+    priceVerdict: priceVerdict,
+    storeSummary: storeSummary,
     isItemDeal: isItemDeal,
     fmtDay: fmtDay,
     money: money,

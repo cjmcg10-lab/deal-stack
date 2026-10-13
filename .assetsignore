@@ -7,3 +7,5 @@ README.md
 .github
 .wrangler
 .assetsignore
+keepalive.txt
+wrangler.template.jsonc

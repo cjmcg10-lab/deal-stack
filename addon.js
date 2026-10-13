@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Deal Stack
 // @namespace    deal-stack
-// @version      1.0.0
-// @description  Tests your coupon codes at checkout, shows the best way to pay on store sites, and saves your card offers to your Deal Stack hub.
+// @version      2.0.0
+// @description  Tests your coupon codes at checkout, shows the best way to pay on store sites, saves deals from store pages, and saves your card offers to your Deal Stack hub.
 // @match        *://*/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.getValue
@@ -74,13 +74,14 @@
     '.big{font-size:28px;font-weight:800;letter-spacing:-.01em}.muted{color:#4b5468;font-size:13px}' +
     'ol{margin:6px 0 0;padding-left:20px}li{margin:3px 0}' +
     '.code{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px dashed #7a8396;border-radius:10px;margin-top:6px;cursor:pointer;background:#fff;width:100%;text-align:left;color:#121722}' +
-    '.code span{font:600 14px ui-monospace,Menlo,monospace;letter-spacing:.04em}.code small{margin-left:auto;color:#4b5468;font-size:12px;text-align:right}' +
+    '.code span{font:600 14px ui-monospace,Menlo,monospace;letter-spacing:.04em;flex:none}.code small{margin-left:auto;color:#4b5468;font-size:12px;text-align:right;min-width:0}' +
+    '.found{padding:7px 0;border-bottom:1px solid #eef0f3;font-size:13px}.found b{display:block;font-size:13.5px}.found span{color:#4b5468}' +
     '.btn{display:inline-block;border:1.5px solid #121722;background:#121722;color:#fff;border-radius:11px;padding:9px 14px;font-weight:700;font-size:14px;cursor:pointer}' +
     '.btn.ghost{background:#fff;color:#121722}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}' +
     '.res{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #eef0f3;font-size:13px}.ok{color:#1e7f52;font-weight:700}.bad{color:#b33a27;font-weight:700}.unk{color:#7a8396}' +
     'input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d8dce4;font-size:16px;color:#121722;background:#fff;margin-top:6px}' +
     '.err{color:#b33a27;font-size:13px;margin-top:6px}.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(70px + env(safe-area-inset-bottom,0px));background:#121722;color:#fff;padding:10px 14px;border-radius:12px;font-size:14px;max-width:calc(100vw - 32px)}' +
-    '@media (prefers-color-scheme: dark){.panel{background:#161b25;color:#edf0f5;border-color:#2a3141}.close{background:#232a38;color:#edf0f5}.muted{color:#b0b8c8}.code{background:#161b25;color:#edf0f5;border-color:#848da0}.code small{color:#b0b8c8}.btn{background:#edf0f5;color:#0c0f15;border-color:#edf0f5}.btn.ghost{background:#161b25;color:#edf0f5;border-color:#2a3141}.res{border-color:#2a3141}input{background:#0c0f15;color:#edf0f5;border-color:#2a3141}}' +
+    '@media (prefers-color-scheme: dark){.panel{background:#161b25;color:#edf0f5;border-color:#2a3141}.close{background:#232a38;color:#edf0f5}.muted{color:#b0b8c8}.code{background:#161b25;color:#edf0f5;border-color:#848da0}.code small{color:#b0b8c8}.btn{background:#edf0f5;color:#0c0f15;border-color:#edf0f5}.btn.ghost{background:#161b25;color:#edf0f5;border-color:#2a3141}.res,.found{border-color:#2a3141}.found span{color:#b0b8c8}input{background:#0c0f15;color:#edf0f5;border-color:#2a3141}}' +
     '</style><div id="root"></div>';
   document.documentElement.appendChild(host);
   var root = shadow.getElementById ? shadow.getElementById('root') : shadow.querySelector('#root');
@@ -104,12 +105,14 @@
     ev.stopPropagation();
     var a = el.getAttribute('data-a');
     if (a === 'dismiss') { ui.view = 'none'; sessionSet('dismissed', true); paint(); return; }
-    if (a === 'open') { ui.view = 'panel'; paint(); return; }
+    if (a === 'open') { ui.view = 'panel'; paint(); if (!isCheckout() && !ctx.capture) scanPage(false).then(paint); return; }
     if (a === 'close') { ui.view = ui.pillText ? 'pill' : 'none'; paint(); return; }
     if (a === 'copy') { copy(el.getAttribute('data-v')); return; }
     if (a === 'test') { startTest(); return; }
     if (a === 'stop') { stopTest('Stopped.'); return; }
     if (a === 'capture') { doCapture(); return; }
+    if (a === 'savepage') { savePage(); return; }
+    if (a === 'rescan') { scanPage(true).then(paint); return; }
     if (a === 'savekey') { saveKey(); return; }
   });
 
@@ -158,9 +161,10 @@
     }
     if (ctx.codes.length) {
       out += '<div class="sec"><div class="lab">Codes · tap to copy</div>' + ctx.codes.slice(0, 8).map(function (x) {
-        return '<button class="code" data-a="copy" data-v="' + h(x.rec.d.code) + '"><span>' + h(x.rec.d.code) + '</span><small>' + h(x.a.terms.headline || '') + '<br>' + h((E.STATUS[x.a.status] || {}).label || '') + ' · ' + x.a.score + '</small></button>';
+        return '<button class="code" data-a="copy" data-v="' + h(x.rec.d.code) + '"><span>' + h(x.rec.d.code) + '</span><small><b>' + h(x.a.terms.headline || '') + '</b> · ' + h((E.STATUS[x.a.status] || {}).label || '') + '<br>On: ' + h(x.a.applies) + '</small></button>';
       }).join('') + '</div>';
     }
+    if (!isCheckout()) out += pageSection();
     var offers = ctx.items.filter(function (x) { return (x.rec.d.kind === 'cardoffer' || x.rec.d.kind === 'portal') && x.a.status !== 'expired'; });
     if (offers.length) out += '<div class="sec"><div class="lab">Card offers here</div>' + offers.map(function (x) {
       var prog = E.PROGRAMS[x.rec.d.card] || E.PROGRAMS[x.rec.d.portal] || {};
@@ -329,7 +333,7 @@
 
   function startTest() {
     if (test.running) return;
-    test = { running: true, i: 0, codes: ctx.codes.slice(0, 10).map(function (x) { return { id: x.rec.id, code: x.rec.d.code }; }), results: [], msg: '', base: readTotal() };
+    test = { running: true, i: 0, codes: ctx.codes.slice(0, 12).map(function (x) { return { id: x.rec.id, code: x.rec.d.code }; }), results: [], msg: '', base: readTotal() };
     ui.view = 'panel'; paint();
     runTest();
   }
@@ -483,6 +487,97 @@
     });
   }
 
+  /* ---------------- save the deals on a store page ---------------- */
+  // Reads this page the same way the collector reads store pages, so stores that block
+  // the collector can still be saved: open their deals page and tap Save.
+  var scan = { at: 0, recs: [], offers: [], products: [] };
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function looksLikeShop() {
+    var t = (document.body.innerText || '').slice(0, 60000);
+    return (t.match(/\$\s?\d/g) || []).length >= 6 && /\b(add to (cart|bag)|sale|% off|promo|coupon|code)\b/i.test(t);
+  }
+  function pageInfo(page) {
+    var brand = E.brandByDomain(DOMAIN);
+    var name = (ctx.store && ctx.store.name) || (brand && brand.name) || DOMAIN.split('.')[0].replace(/^./, function (c) { return c.toUpperCase(); });
+    var label = page.h1 && page.h1.length < 70 ? page.h1 : null;
+    return { domain: DOMAIN, brand: name, url: location.href.split('#')[0], cat: brand ? brand.cat : null, pageLabel: label, sourceType: 'official', sourceName: name + ' website (saved in Safari)' };
+  }
+  async function fillTerms(page, allowFetch) {
+    var here = location.href.split('#')[0];
+    var cache = {};
+    var budget = 3;
+    for (var i = 0; i < page.offers.length; i++) {
+      var o = page.offers[i];
+      if (!o.termsUrls || !o.termsUrls.length) continue;
+      var turl = o.termsUrls[0];
+      var base = turl.split('#')[0];
+      var root = base === here ? page.root : cache[base];
+      if (root === undefined) {
+        root = null;
+        if (allowFetch && budget > 0 && base.indexOf(location.origin) === 0) {
+          budget--;
+          try { var res = await fetch(base, { credentials: 'include' }); if (res.ok) root = E.parseHTML(await res.text()); } catch (e) { }
+        }
+        cache[base] = root;
+      }
+      if (!root) continue;
+      var keys = [o.code].concat((o.tiers || []).map(function (t) { return '$' + t.amt; }), [(/\d{1,2}\s?%/.exec(o.line) || [])[0], (/\$\s?\d+/.exec(o.line) || [])[0]]).filter(Boolean);
+      var text = E.termsFromPage(root, turl, keys);
+      if (text) { o.termsText = text; o.termsSource = turl; }
+    }
+  }
+  async function scanPage(withTerms) {
+    try {
+      var page = E.readPage(E.fromDom(document.documentElement), { url: location.href, domain: DOMAIN });
+      await fillTerms(page, !!withTerms);
+      var got = E.recordsFromPage(page, pageInfo(page), new Date());
+      var recs = got.records.filter(function (r) { return E.isComplete(r); });
+      var now = new Date();
+      var assessed = recs.map(function (r) { return { r: r, a: E.assess({ id: r.id, d: r.data, fs: now.toISOString(), ls: now.toISOString() }, { now: now }) }; });
+      scan = { at: Date.now(), recs: recs, offers: assessed.filter(function (x) { return x.r.kind !== 'product'; }), products: assessed.filter(function (x) { return x.r.kind === 'product'; }), dropped: got.dropped.length };
+    } catch (e) { scan = { at: Date.now(), recs: [], offers: [], products: [], err: true }; }
+    return scan;
+  }
+  function pageSection() {
+    if (!scan.at) return '';
+    var n = scan.recs.length;
+    var out = '<div class="sec"><div class="lab">On this page</div>';
+    if (!n) return out + '<div class="muted">No deals here that say what they apply to. Open the store\'s deals or sale page and try again.</div><div class="row"><button class="btn ghost" data-a="rescan">Look again</button></div></div>';
+    out += '<div class="muted">' + [scan.offers.length ? plural(scan.offers.length, 'promotion or code', 'promotions and codes') : null, scan.products.length ? plural(scan.products.length, 'product') + ' on sale' : null].filter(Boolean).join(' and ') + '. Saving adds them to the app with what each applies to.</div>';
+    out += scan.offers.slice(0, 5).map(function (x) {
+      return '<div class="found"><b>' + h(x.r.data.title) + '</b><span>Applies to: ' + h(x.a.applies) + '</span></div>';
+    }).join('');
+    if (scan.products.length) out += '<div class="found"><span>' + scan.products.slice(0, 3).map(function (x) { return h(x.r.data.product.name) + ' ' + E.money(x.r.data.product.price); }).join(' · ') + (scan.products.length > 3 ? ' and more' : '') + '</span></div>';
+    return out + '<div class="row"><button class="btn" data-a="savepage">Save ' + plural(n, 'deal') + ' to Deal Stack</button><button class="btn ghost" data-a="rescan">Look again</button></div></div>';
+  }
+  function offerPageSave() {
+    if (isCheckout()) return;
+    setTimeout(function () {
+      scanPage(false).then(function (sc) {
+        if (sc.offers.length < 1 && sc.products.length < 3) return;
+        if (!ui.pillText) ui.pillText = '<b>Deal Stack</b> Save ' + plural(sc.recs.length, 'deal') + ' from this page';
+        if (sessionGet('dismissed') || ui.view === 'panel') { paint(); return; }
+        ui.view = 'pill'; paint();
+      });
+    }, 2500);
+  }
+  function savePage() {
+    toast('Reading the fine print…');
+    scanPage(true).then(function (sc) {
+      if (!sc.recs.length) { paint(); toast('Nothing to save on this page.'); return; }
+      return hub('POST', '/api/ingest', { source: 'capture:store:' + DOMAIN, deals: sc.recs }).then(function (j) {
+        if (j._status === 401) { var e = new Error('badkey'); e.nokey = true; throw e; }
+        if (!j.ok) throw new Error(j.error || 'failed');
+        setVal('index', null);
+        toast('Saved ' + plural(j.accepted, 'deal') + ' to Deal Stack');
+        return hub('POST', '/api/notify', {}).catch(function () { });
+      });
+    }).catch(function (e) {
+      if (e && e.nokey) { ctx.needKey = true; ui.view = 'panel'; paint(); }
+      else toast("Couldn't save: " + (e && e.message ? e.message : 'no connection'));
+    });
+  }
+
   /* ---------------- start ---------------- */
   function loadIndex() {
     return getVal('index', null).then(function (idx) {
@@ -505,13 +600,14 @@
       ctx.items = (j.deals || []).map(function (rec) { return { rec: rec, a: E.assess(rec, { now: now, sight: j.sight || {}, tests: testsBy[rec.id] || [] }) }; });
       ctx.settings = Object.assign({}, E.DEFAULT_SETTINGS, j.settings || {});
       ctx.store = E.storeFor(DOMAIN, (j.deals || []));
-      ctx.codes = ctx.items.filter(function (x) { return x.rec.d.code && x.a.status !== 'failed' && x.a.status !== 'expired' && !x.a.terms.item; })
-        .sort(function (a, b) { return b.a.score - a.a.score; });
+      // Codes for the whole order first, then codes for certain items. Codes tied to one product are skipped.
+      ctx.codes = ctx.items.filter(function (x) { var d = x.rec.d; return d.code && x.a.status !== 'failed' && x.a.status !== 'expired' && !x.a.terms.item && !(d.scope && d.scope.type === 'product'); })
+        .sort(function (a, b) { return (b.a.whole ? 1 : 0) - (a.a.whole ? 1 : 0) || b.a.score - a.a.score; });
       ctx.cart = isCheckout() ? readTotal() : null;
       ctx.plan = E.planForStore(ctx.store, ctx.items, ctx.settings, ctx.cart || 100);
       var b = ctx.plan.best;
-      if (!ctx.items.length) return;
-      var label = ctx.codes.length ? ctx.codes.length + (ctx.codes.length === 1 ? ' code' : ' codes') : 'card offers';
+      if (!ctx.items.length) { offerPageSave(); return; }
+      var label = ctx.codes.length ? ctx.codes.length + (ctx.codes.length === 1 ? ' code' : ' codes') : ctx.items.some(function (x) { return x.rec.d.kind === 'cardoffer' || x.rec.d.kind === 'portal'; }) ? 'card offers' : plural(ctx.items.length, 'deal');
       ui.pillText = '<b>Deal Stack</b> ' + h(label) + (b && b.totalPct ? ' · save ' + E.pctStr(b.totalPct) : '');
       if (sessionGet('dismissed')) return;
       if (ui.view !== 'panel') ui.view = 'pill';
@@ -540,8 +636,9 @@
         return;
       }
       loadIndex().then(function (list) {
-        if (list.indexOf(DOMAIN) < 0) return;
-        return loadStore();
+        ctx.known = list.indexOf(DOMAIN) >= 0;
+        if (!ctx.known) { if (E.brandByDomain(DOMAIN) || looksLikeShop()) offerPageSave(); return; }
+        return loadStore().then(function () { if (!isCheckout()) setTimeout(function () { scanPage(false).then(function () { if (ui.view === 'panel') paint(); }); }, 2500); });
       }).catch(function (e) {
         if (e && e.nokey && isCheckout()) { ctx.needKey = true; ctx.keyErr = "Your saved key no longer matches your hub."; ui.pillText = '<b>Deal Stack</b> Reconnect'; ui.view = 'pill'; paint(); }
       });

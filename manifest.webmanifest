@@ -1,0 +1,14 @@
+{
+  "name": "Deal Stack",
+  "short_name": "Deal Stack",
+  "description": "Your coupons, card offers and the best way to pay, in one place.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0C0F15",
+  "theme_color": "#EEF0F3",
+  "icons": [
+    { "src": "/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

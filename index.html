@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Deal Stack">
 <meta name="theme-color" content="#EEF0F3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C0F15" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -340,14 +341,14 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 /* Tab bar */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
   background: color-mix(in srgb, var(--card) 92%, transparent);
   backdrop-filter: saturate(1.4) blur(16px); -webkit-backdrop-filter: saturate(1.4) blur(16px);
   border-top: 1px solid var(--line);
 }
-.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border: 0; background: none; color: var(--ink-3); font-size: 11px; font-weight: 600; border-radius: 10px; }
-.tabbar svg { width: 23px; height: 23px; }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; border: 0; background: none; color: var(--ink-3); font-size: 10.5px; font-weight: 600; border-radius: 10px; white-space: nowrap; min-width: 0; letter-spacing: -.005em; }
+.tabbar svg { width: 22px; height: 22px; }
 .tabbar button[aria-current="page"] { color: var(--ink); }
 .tabbar button[aria-current="page"] svg { color: var(--ink); }
 .tabbar button[aria-current="page"] .tb-dot { background: var(--marker); }
@@ -364,6 +365,126 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .err { color: var(--bad); font-size: 13.5px; }
 .loading { padding: 60px 0; text-align: center; color: var(--ink-2); }
 
+/* What a deal applies to */
+.applies { display: block; font-size: 12.5px; line-height: 1.35; color: var(--ink); }
+.applies b { font-weight: 700; color: var(--ink-3); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; margin-right: 4px; }
+.applies-box { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--marker); display: flex; flex-direction: column; gap: 5px; }
+.applies-box .ab-text { font-size: 16px; font-weight: 600; line-height: 1.35; }
+.banner.info { background: var(--info-bg); color: var(--info); }
+
+/* Chips that wrap / sit flush */
+.chips.flush { margin-top: 0; }
+.chips.wrap { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+.store-chip { color: var(--ink); font-weight: 600; }
+
+/* Coupon code tickets (Codes tab and store pages) */
+.cgroup + .cgroup { margin-top: 18px; }
+.cgroup-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.linkish { display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; padding: 2px 0; color: var(--ink); font: 700 19px/1.1 var(--f-display); letter-spacing: .01em; text-align: left; }
+.linkish svg { color: var(--ink-3); flex: none; }
+.sheet .linkish { margin-top: 2px; font: 600 14px/1.2 var(--f-body); color: var(--info); }
+.sheet .linkish svg { color: var(--info); width: 16px; height: 16px; }
+.cticket {
+  position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cticket + .cticket { margin-top: 10px; }
+.cticket::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--marker); }
+.cticket-main { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 14px 10px 18px; border: 0; background: none; text-align: left; }
+.cticket-top { display: flex; align-items: flex-start; gap: 8px; }
+.cvalue { font: 700 20px/1.1 var(--f-display); letter-spacing: .005em; min-width: 0; }
+.ccode {
+  align-self: flex-start; font: 600 17px/1 var(--f-mono); letter-spacing: .07em; padding: 8px 11px; border-radius: 9px;
+  border: 2px dashed var(--ink-3); background: var(--paper); overflow-wrap: anywhere;
+}
+.cticket-actions { display: flex; gap: 8px; padding: 10px 14px 12px 18px; border-top: 1.5px dashed var(--line); }
+.cticket-actions .btn { flex: 1; }
+.cticket-actions .btn svg { flex: none; }
+
+/* Star */
+.star { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: none; color: var(--ink-3); border-radius: 10px; padding: 0; }
+.star svg { fill: none; }
+.star.on { color: #E0A800; }
+.star.on svg { fill: var(--marker); stroke: #C99400; }
+
+/* Store list */
+.panel.flat { padding: 0 6px 0 2px; }
+.storerow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px; padding: 6px 4px 6px 0; border-bottom: 1px solid var(--line); }
+.storerow:last-child { border-bottom: 0; }
+.storerow-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; border: 0; background: none; text-align: left; padding: 6px 4px; }
+.storerow .nm { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.storerow .how { color: var(--ink-2); font-size: 12.5px; line-height: 1.3; }
+.storerow .pc { font: 700 22px/1 var(--f-display); text-align: right; font-variant-numeric: tabular-nums; padding-right: 6px; }
+.storerow .pc small { display: block; font: 500 10.5px/1.2 var(--f-body); color: var(--ink-3); }
+.storerow .pc.muted { color: var(--ink-3); }
+.filters.two { grid-template-columns: 1fr 1fr; }
+.filters.one { grid-template-columns: 1fr; }
+.center { text-align: center; margin: 14px 0 0; }
+
+/* Store page */
+.backbar { display: flex; align-items: center; gap: 10px; padding-top: 14px; }
+.store-head { padding-top: 10px; }
+.sh-row { display: flex; align-items: center; gap: 6px; }
+.sh-row h1 { flex: 1; min-width: 0; }
+.sh-row .star { width: 42px; height: 42px; }
+.sh-row .star svg { width: 26px; height: 26px; }
+
+/* Product rows */
+.prow {
+  display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; width: 100%; text-align: left;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px 10px 10px;
+}
+.pinfo { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pbrand { font-size: 11.5px; color: var(--ink-3); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pname { font-size: 14px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pmeta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.pmeta:empty { display: none; }
+.pprice { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; text-align: right; font-variant-numeric: tabular-nums; }
+.pprice b { font: 700 20px/1 var(--f-display); }
+.pprice s, .pbig s, .mini-price s { color: var(--ink-3); font-size: 12px; }
+.ppct { font-size: 11.5px; font-weight: 700; color: var(--good); }
+.thumb {
+  width: 56px; height: 56px; border-radius: 10px; overflow: hidden; flex: none; display: grid; place-items: center;
+  background: #fff; border: 1px solid var(--line);
+}
+.thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.thumb.ph { background: var(--tint); color: var(--ink-3); font: 700 22px/1 var(--f-display); }
+.thumb.sm { width: 40px; height: 40px; border-radius: 8px; font-size: 17px; }
+.thumb.lg { width: 104px; height: 104px; border-radius: 14px; font-size: 36px; }
+
+/* Price verdicts */
+.vbadge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.v-low { background: var(--good-bg); color: var(--good); }
+.v-always, .v-higher { background: var(--bad-bg); color: var(--bad); }
+.v-steady { background: var(--info-bg); color: var(--info); }
+.v-new { background: var(--mute-bg); color: var(--mute); }
+p.verdict { margin: 0 0 8px; font-size: 14.5px; line-height: 1.45; background: none; padding: 0; color: var(--ink); }
+p.verdict .vbadge { margin-right: 4px; vertical-align: 1px; }
+.pdetail { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; margin-top: 12px; }
+.pbig { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+.pbig b { font: 700 34px/1 var(--f-display); }
+
+/* Items a deal covers */
+.mini-list { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+.mini { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px 8px 8px; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.mini:last-child { border-bottom: 0; }
+.mini-name { font-size: 13.5px; line-height: 1.3; min-width: 0; }
+.mini-name em { color: var(--ink-3); font-style: normal; }
+.mini-price { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.mini-price b { font-size: 14px; }
+
+/* Settings toggles */
+.toggles { display: flex; flex-direction: column; margin-top: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; }
+.tog { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.tog:last-child { border-bottom: 0; }
+
+@media (max-width: 370px) {
+  .tabbar button { font-size: 9.5px; }
+  .cvalue { font-size: 18px; }
+  .prow { grid-template-columns: 48px 1fr auto; gap: 10px; }
+  .prow .thumb { width: 48px; height: 48px; }
+}
+
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 @media (min-width: 640px) { .app { padding-left: 24px; padding-right: 24px; } }
 
@@ -376,7 +497,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="engine.js"></script>
 <script>
-/* Deal Stack app. Runs in Safari / as a home-screen app, talking to your private hub. */
+/* Deal Stack app. Runs in Safari or from the Home Screen, talking to your private hub. */
 (function () {
   'use strict';
   var E = window.DealEngine;
@@ -393,6 +514,9 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     del: function (k) { delete mem[k]; try { localStorage.removeItem('dealstack.' + k); } catch (e) { } }
   };
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function host(u) { try { var x = new URL(u); return x.hostname.replace(/^www\./, '') + (x.pathname.length > 1 ? x.pathname : '') + (x.hash || ''); } catch (e) { return u || ''; } }
+  function shortHost(u) { var h = host(u); return h.length > 56 ? h.slice(0, 55) + '…' : h; }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
 
   var ICON = {
     logo: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="2.5" width="18" height="9" rx="2.5" fill="currentColor" opacity=".28"/><rect x="4.5" y="7.5" width="23" height="10" rx="2.8" fill="currentColor" opacity=".55"/><path d="M3 15.5a3 3 0 0 1 3-3h20a3 3 0 0 1 3 3v2.6a2.6 2.6 0 0 0 0 5.2v2.7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.7a2.6 2.6 0 0 0 0-5.2z" fill="var(--marker)" stroke="currentColor" stroke-width="1.6"/><path d="M12 19.5l8-0M12 23.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
@@ -400,18 +524,23 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.5M4 4v4h4M4 13a8 8 0 0 0 14.9 3.5M20 20v-4h-4"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
     foryou: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5.4 5.6.6-4.2 3.9 1.2 5.6L12 15.6 7 18.5l1.2-5.6L4 9l5.6-.6z"/></svg>',
-    browse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3.5a2.5 2.5 0 0 0 0 5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3.5a2.5 2.5 0 0 0 0-5z"/><path d="M9.5 4v16" stroke-dasharray="2 2.2"/></svg>',
+    codes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3.5a2.5 2.5 0 0 0 0 5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3.5a2.5 2.5 0 0 0 0-5z"/><path d="M9.5 4v16" stroke-dasharray="2 2.2"/><path d="M13 10.5h4M13 13.5h3" stroke-linecap="round"/></svg>',
+    stores: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9h16v2a2.7 2.7 0 0 1-5.3 0 2.7 2.7 0 0 1-5.4 0A2.7 2.7 0 0 1 4 11z"/><path d="M5.5 13.5V20h13v-6.5M10 20v-4h4v4"/></svg>',
     way: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l9-9-4-4-9 9z"/><path d="M13 7l4 4"/><path d="M15 3h6v6"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L6.8 5M3.5 12l1.2 1.2 2.1-2.2M3.5 18l1.2 1.2 2.1-2.2"/></svg>',
     cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 15h4"/></svg>',
     copy: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>',
     out: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
-    close: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+    close: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    back: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+    star: '<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
+    chev: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
   };
 
   var TABS = [
     { id: 'foryou', label: 'For You' },
-    { id: 'browse', label: 'Browse' },
+    { id: 'codes', label: 'Codes' },
+    { id: 'stores', label: 'Stores' },
     { id: 'way', label: 'Best Way' },
     { id: 'list', label: 'My List' },
     { id: 'cards', label: 'Cards' }
@@ -419,35 +548,31 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
   /* ---------------- state ---------------- */
   var S = {
-    mode: 'loading',
-    live: false,
-    demo: false,
+    mode: 'loading', live: false, demo: false,
     key: store.get('key', ''),
     raw: null,
-    items: [], byId: {}, byDomain: {}, stacks: {}, extras: {}, recs: [],
+    items: [], byId: {}, byDomain: {}, stacks: {}, extras: {}, recs: [], summaries: {},
     settings: mergeSettings(store.get('settings', null)),
     tab: store.get('tab', 'foryou'),
     fy: { cat: 'all' },
-    browse: { q: '', cats: [], status: 'working', type: 'all', sort: 'best', limit: 40 },
+    codes: { q: '', filter: 'all', cat: 'all', sort: 'best', limit: 30, showFailed: false },
+    stores: { q: '', filter: 'all', cat: 'all', view: null, prodSort: 'pct', prodLimit: 24 },
     way: { domain: store.get('wayDomain', null), amount: store.get('wayAmount', 100), q: '' },
     listOpen: {},
-    sheet: null,
-    ocr: null,
-    ocrProgram: 'venmo',
-    stashQ: '',
-    busy: false
+    sheet: null, ocr: null, ocrProgram: 'venmo', stashQ: '', busy: false,
+    push: { state: 'unknown' }
   };
   if (!TABS.some(function (t) { return t.id === S.tab; })) S.tab = 'foryou';
 
   function mergeSettings(s) {
     var base = clone(E.DEFAULT_SETTINGS);
+    base.favorites = []; base.hidden = []; base.extraStores = []; base.alerts = { list: true, favorites: true, expiring: true };
     if (!s || typeof s !== 'object') return base;
     Object.keys(s).forEach(function (k) { base[k] = s[k]; });
     if (!base.stash || typeof base.stash !== 'object') base.stash = { tier: 1, brands: [] };
     if (!Array.isArray(base.stash.brands)) base.stash.brands = [];
-    if (!Array.isArray(base.cards)) base.cards = clone(E.DEFAULT_SETTINGS.cards);
-    if (!Array.isArray(base.categories)) base.categories = [];
-    if (!Array.isArray(base.plan)) base.plan = [];
+    ['cards', 'categories', 'plan', 'favorites', 'hidden', 'extraStores'].forEach(function (k) { if (!Array.isArray(base[k])) base[k] = k === 'cards' ? clone(E.DEFAULT_SETTINGS.cards) : []; });
+    if (!base.alerts || typeof base.alerts !== 'object') base.alerts = { list: true, favorites: true, expiring: true };
     return base;
   }
 
@@ -459,6 +584,8 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () { api('/api/settings', { method: 'PUT', body: { settings: S.settings } }); }, 600);
   }
+  function isFav(d) { return S.settings.favorites.indexOf(d) >= 0; }
+  function isHidden(d) { return S.settings.hidden.indexOf(d) >= 0; }
 
   /* ---------------- talking to the hub ---------------- */
   function api(path, opts) {
@@ -475,12 +602,14 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   }
 
   function boot() {
+    readHash();
     if (PREVIEW) return startDemo();
     render();
     fetch('/api/ping', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (p) {
       if (!p || p.app !== 'deal-stack') return startDemo();
       S.live = true;
       S.ping = p;
+      registerWorker();
       if (!S.key) { S.mode = 'connect'; render(); return; }
       var cached = store.get('cache', null);
       if (cached && cached.deals) { S.raw = cached; S.mode = 'ready'; derive(); render(); }
@@ -493,14 +622,14 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     api('/api/deals').then(function (j) {
       S.busy = false;
       if (j._status === 401) { S.mode = 'connect'; S.connectErr = "That key doesn't match the APP_KEY in Cloudflare."; render(); return; }
-      if (!j.ok) { paintTopbar(); toast(j.error || 'Could not load deals.'); if (!S.raw) { S.raw = { deals: [], tests: [], sight: {}, status: {} }; S.mode = 'ready'; derive(); render(); } return; }
+      if (!j.ok) { paintTopbar(); toast(j.error || 'Could not load deals.'); if (!S.raw) { S.raw = { deals: [], tests: [], sight: {}, status: {}, pstats: {} }; S.mode = 'ready'; derive(); render(); } return; }
       S.raw = j;
       if (j.settings) { S.settings = mergeSettings(j.settings); store.set('settings', S.settings); }
       else if (S.live) api('/api/settings', { method: 'PUT', body: { settings: S.settings } });
       S.mode = 'ready';
       derive(); render();
       if (manual) toast('Updated: ' + S.items.filter(usable).length + ' deals you can use');
-      try { var txt = JSON.stringify(j); if (txt.length < 2500000) store.set('cache', j); } catch (e) { }
+      try { var txt = JSON.stringify(j); if (txt.length < 2500000) store.set('cache', j); else store.del('cache'); } catch (e) { }
     }).catch(function () {
       S.busy = false; paintTopbar();
       toast(S.raw ? 'No connection. Showing your saved deals.' : 'Could not reach your hub.');
@@ -516,9 +645,21 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     derive(); render();
   }
 
+  function readHash() {
+    var h = String(location.hash || '').replace(/^#/, '');
+    if (!h) return;
+    var m = /(?:^|&)store=([^&]+)/.exec(h);
+    if (m) { S.tab = 'stores'; S.stores.view = decodeURIComponent(m[1]); }
+    m = /(?:^|&)tab=([^&]+)/.exec(h);
+    if (m && TABS.some(function (t) { return t.id === m[1]; })) S.tab = m[1];
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
+  }
+  window.addEventListener('hashchange', function () { readHash(); if (S.mode === 'ready') render(); });
+
   /* ---------------- deriving what to show ---------------- */
   function usable(x) { return x.a.status !== 'failed' && x.a.status !== 'expired'; }
   function working(x) { return x.a.status === 'tested' || x.a.status === 'official' || x.a.status === 'likely'; }
+  function shown(x) { return usable(x) && !isHidden(x.rec.d.domain); }
 
   function derive() {
     var now = new Date();
@@ -528,7 +669,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     S.items = []; S.byId = {}; S.byDomain = {};
     (raw.deals || []).forEach(function (rec) {
       if (!rec || !rec.d) return;
-      var a = E.assess(rec, { now: now, sight: raw.sight || {}, tests: testsBy[rec.id] || [] });
+      var a = E.assess(rec, { now: now, sight: raw.sight || {}, tests: testsBy[rec.id] || [], pstats: raw.pstats || {} });
       var x = { rec: rec, a: a };
       S.items.push(x); S.byId[rec.id] = x;
       (S.byDomain[rec.d.domain] = S.byDomain[rec.d.domain] || []).push(x);
@@ -538,13 +679,15 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
   function realDomain(d) { return d && d.indexOf('deal:') !== 0 && d !== 'unknown'; }
 
+  function storeOf(dom) { return E.storeFor(dom, (S.byDomain[dom] || []).map(function (x) { return x.rec; })); }
+
   function computeStacks() {
-    S.stacks = {}; S.extras = {};
+    S.stacks = {}; S.extras = {}; S.summaries = {};
     Object.keys(S.byDomain).forEach(function (dom) {
-      if (!realDomain(dom)) return;
       var items = S.byDomain[dom];
-      var st = E.storeFor(dom, items.map(function (x) { return x.rec; }));
-      var plan = E.planForStore(st, items, S.settings, 100);
+      S.summaries[dom] = E.storeSummary(dom, items);
+      if (!realDomain(dom)) return;
+      var plan = E.planForStore(storeOf(dom), items, S.settings, 100);
       S.stacks[dom] = plan;
       var discPct = plan.discount ? plan.discount.value : 0;
       S.extras[dom] = plan.best ? Math.max(0, plan.best.total - discPct) : 0;
@@ -557,16 +700,21 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     var p = x.a.terms, d = x.rec.d;
     var pre = p.upTo ? 'up to' : (p.extra ? 'extra' : '');
     var big = '', unit = '', sm = false;
-    if (p.item && d.price && !p.pct && !p.amt) { big = E.money(d.price); unit = 'DEAL'; }
-    else if ((d.kind === 'cardoffer' || d.kind === 'portal') && (p.cashPct || p.cashAmt)) {
+    if (d.kind === 'product' && d.product) {
+      if (d.product.pct) { big = d.product.pct + '%'; unit = 'OFF'; } else { big = E.money(d.product.price); unit = 'PRICE'; }
+      pre = d.product.pct ? '' : 'posted';
+    } else if ((d.kind === 'cardoffer' || d.kind === 'portal') && (p.cashPct || p.cashAmt)) {
       big = p.cashPct ? E.pctStr(p.cashPct) : E.money(p.cashAmt); unit = 'BACK';
-    } else if (p.pct) { big = E.pctStr(p.pct); unit = 'OFF'; }
+    } else if (p.tiers && p.tiers.length >= 2) { big = E.money(p.tiers[p.tiers.length - 1].amt); unit = 'OFF'; pre = 'up to'; }
+    else if (p.stackText) { big = p.pct + '%'; unit = 'OFF'; pre = 'total'; }
+    else if (p.pctHigh) { big = p.pct + '–' + p.pctHigh + '%'; unit = 'OFF'; sm = true; }
+    else if (p.pct) { big = E.pctStr(p.pct); unit = 'OFF'; }
     else if (p.amt) { big = E.money(p.amt); unit = 'OFF'; }
     else if (p.cashPct) { big = E.pctStr(p.cashPct); unit = 'BACK'; }
     else if (p.cashAmt) { big = E.money(p.cashAmt); unit = 'BACK'; }
     else if (p.bogo) { big = 'BOGO'; sm = true; }
     else if (p.freeShip) { big = 'FREE'; unit = 'SHIP'; sm = true; }
-    else if (d.price) { big = E.money(d.price); unit = 'DEAL'; sm = String(big).length > 5; }
+    else if (d.code) { big = 'CODE'; sm = true; }
     else { big = 'DEAL'; sm = true; }
     if (String(big).length >= 5) sm = true;
     return '<div class="stub" data-kind="' + esc(d.kind) + '">' + (pre ? '<span class="pre">' + esc(pre) + '</span>' : '') +
@@ -578,92 +726,113 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     return '<span class="status s-' + esc(a.status) + '"><i></i>' + esc(s.label) + (withScore !== false ? ' <span class="sc">' + a.score + '</span>' : '') + '</span>';
   }
 
+  function verdictBadge(v) {
+    if (!v) return '';
+    var label = { low: 'Lowest seen', always: 'Always this price?', higher: 'Was lower', steady: 'Steady price', new: 'Tracking price' }[v.code] || '';
+    return label ? '<span class="vbadge v-' + esc(v.code) + '">' + esc(label) + '</span>' : '';
+  }
+
   function kindWord(d) {
     if (d.kind === 'cardoffer') return (E.PROGRAMS[d.card] || {}).name || 'Card offer';
     if (d.kind === 'portal') return 'Capital One Shopping';
     return null;
   }
 
+  function thumb(img, name, cls) {
+    var initial = esc(String(name || '?').replace(/[^A-Za-z0-9]/g, '').charAt(0).toUpperCase() || '?');
+    if (!img) return '<span class="thumb ph ' + (cls || '') + '" aria-hidden="true">' + initial + '</span>';
+    return '<span class="thumb ' + (cls || '') + '"><img src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'ph\');this.parentNode.textContent=\'' + initial + '\'"></span>';
+  }
+
+  // One line saying exactly what the deal covers.
+  function appliesLine(x) {
+    var d = x.rec.d;
+    if (d.kind === 'product') return '';
+    return '<div class="applies"><b>Applies to</b> ' + esc(x.a.applies) + '</div>';
+  }
+
   function couponCard(x, why) {
     var d = x.rec.d, a = x.a;
-    var cat = E.CAT_BY_ID[d.cat];
+    if (d.kind === 'product') return productRow(x, why);
     var kw = kindWord(d);
     var title = d.kind === 'cardoffer' || d.kind === 'portal' ? (kw + ': ' + (a.terms.headline || d.title)) : d.title;
+    var cond = conditions(x);
     return '<button class="coupon" data-action="deal" data-id="' + esc(x.rec.id) + '">' + stubFor(x) +
       '<div class="cbody"><div class="row1"><span class="brand">' + esc(d.brand) + '</span>' + statusPill(a) + '</div>' +
-      '<div class="ctitle">' + esc(title) + '</div>' +
-      (a.terms.gist ? '<div class="gist">' + esc(a.terms.gist) + '</div>' : '') +
+      '<div class="ctitle">' + esc(title) + '</div>' + appliesLine(x) +
+      (cond ? '<div class="gist">' + esc(cond) + '</div>' : '') +
       '<div class="row3">' + (d.code ? '<span class="codetag">' + esc(d.code) + '</span>' : '') +
-      (why && why.length ? '<span class="why">' + esc(why[0]) + '</span>' : (cat ? '<span class="cattag">' + esc(cat.label) + '</span>' : '')) +
+      (why && why.length ? '<span class="why">' + esc(why[0]) + '</span>' : '') +
       '</div></div></button>';
+  }
+
+  // The conditions in a few words ("$75 min · new customers · ends Oct 31").
+  function conditions(x) {
+    var p = x.a.terms;
+    var parts = [];
+    if (p.tiers && p.tiers.length >= 2) parts.push(p.tiers.map(function (t) { return E.money(t.amt) + ' off ' + E.money(t.min); }).join(', '));
+    else if (p.minSpend) parts.push(E.money(p.minSpend) + ' min');
+    if (p.cap) parts.push('max ' + E.money(p.cap));
+    if (p.newCust) parts.push('new customers');
+    if (p.members) parts.push('members');
+    if (p.storeCard) parts.push("store's card");
+    if (p.verify) parts.push('ID check');
+    if (p.signup) parts.push('email sign-up');
+    if (p.appOnly) parts.push('app only');
+    if (p.inStore) parts.push('in-store only'); else if (p.online) parts.push('online only');
+    if (p.exclSale) parts.push('not on sale items');
+    if (p.noStack) parts.push("can't combine");
+    if (x.a.expires) parts.push((x.rec.d.expSet ? 'ends ' : 'about ') + E.fmtDay(x.a.expires));
+    return parts.join(' · ');
+  }
+
+  function productRow(x, why) {
+    var d = x.rec.d, pr = d.product || {};
+    return '<button class="prow" data-action="deal" data-id="' + esc(x.rec.id) + '">' + thumb(pr.img, pr.name) +
+      '<span class="pinfo"><span class="pbrand">' + esc(d.brand) + (d.section ? ' · ' + esc(d.section) : '') + '</span>' +
+      '<span class="pname">' + esc(pr.name || d.title) + '</span>' +
+      '<span class="pmeta">' + verdictBadge(x.a.verdict) + (pr.stock === 'out' ? '<span class="vbadge v-higher">Out of stock</span>' : pr.stock === 'low' ? '<span class="vbadge v-new">Low stock</span>' : '') +
+      (why && why.length ? '<span class="why">' + esc(why[0]) + '</span>' : '') + '</span></span>' +
+      '<span class="pprice"><b>' + E.money(pr.price) + '</b>' + (pr.was ? '<s>' + E.money(pr.was) + '</s>' : '') + (pr.pct ? '<span class="ppct">' + pr.pct + '% off</span>' : '') + '</span></button>';
   }
 
   function emptyBox(title, body) { return '<div class="empty"><b>' + esc(title) + '</b>' + esc(body) + '</div>'; }
 
+  // "Code SAVE20 + Capital One Offers, paid with Venture X"
   function stackSummary(plan) {
     var b = plan.best;
     if (!b) return '';
-    var bits = b.parts.map(function (p) {
-      if (p.kind === 'discount') return p.label;
-      if (p.kind === 'reward') return b.card.short;
-      return p.label;
-    });
-    return bits.join(' + ');
+    var others = b.parts.filter(function (p) { return p.kind !== 'reward'; }).map(function (p) { return p.label; });
+    return (others.length ? others.join(' + ') + ', paid with ' : 'Card rewards only, paid with ') + b.card.short;
   }
 
   function stackRow(dom, plan) {
     var b = plan.best;
     return '<button class="stackrow" data-action="way" data-domain="' + esc(dom) + '"><span class="nm">' + esc(plan.store.name) + '</span>' +
-      '<span class="pc">' + E.pctStr(b.totalPct) + '<small>on $100</small></span>' +
-      '<span class="how">Pay with ' + esc(b.card.short) + ' · ' + esc(stackSummary(plan)) + '</span></button>';
+      '<span class="pc">' + E.pctStr(b.totalPct) + '<small>on ' + E.money(plan.amount || 100) + '</small></span>' +
+      '<span class="how">' + esc(stackSummary(plan)) + '</span></button>';
+  }
+
+  // A sensible order size to show savings on: $100, or the lowest minimum spend when nothing works at $100.
+  function sampleAmount(dom, only) {
+    var list = only ? [only] : (S.byDomain[dom] || []).filter(function (y) { return usable(y) && y.a.whole && (y.rec.d.kind === 'code' || y.rec.d.kind === 'sale'); });
+    if (!list.length) return 100;
+    var mins = list.map(function (y) { return y.a.terms.minSpend || 0; });
+    if (mins.some(function (m) { return m <= 100; })) return 100;
+    var m = Math.min.apply(null, mins);
+    return m <= 600 ? m : 100;
   }
 
   function topStacks(n, filterCat) {
     var rows = Object.keys(S.stacks).map(function (dom) { return [dom, S.stacks[dom]]; }).filter(function (r) {
       var p = r[1];
-      if (!p.best || !p.best.total) return false;
-      var hasDeal = (S.byDomain[r[0]] || []).some(usable);
-      if (!hasDeal) return false;
+      if (!p.best || !p.best.total || isHidden(r[0])) return false;
+      if (!p.discount && !p.best.parts.some(function (x) { return x.kind === 'offer' || x.kind === 'portal'; })) return false;
       if (filterCat && filterCat !== 'all' && p.store.cat !== filterCat) return false;
       return true;
     });
     rows.sort(function (a, b) { return b[1].best.totalPct - a[1].best.totalPct; });
     return rows.slice(0, n);
-  }
-
-  /* ---------------- views ---------------- */
-  function viewForYou() {
-    var all = S.items.filter(usable);
-    var tested = all.filter(function (x) { return x.a.status === 'tested'; });
-    var cats = catCounts(all);
-    var mine = S.settings.categories || [];
-    var fc = S.fy.cat;
-    var recs = S.recs.filter(function (x) { return fc === 'all' || x.rec.d.cat === fc; });
-    var bestStack = topStacks(1)[0];
-    var h = '<header class="view-head"><h1>For you</h1><p class="sub">' +
-      (mine.length ? 'Ranked for ' + mine.map(function (c) { return E.CAT_BY_ID[c] ? E.CAT_BY_ID[c].label : c; }).join(', ') + ', your list and your cards.' : 'Ranked by value, how sure we are they work, your list and your cards.') + '</p></header>';
-    h += '<div class="tally"><div><b>' + all.filter(working).length + '</b><span>deals that should work</span></div>' +
-      '<div><b>' + tested.length + '</b><span>worked at a checkout</span></div>' +
-      '<div><b>' + (bestStack ? E.pctStr(bestStack[1].best.totalPct) : '–') + '</b><span>' + (bestStack ? 'best stack, ' + esc(bestStack[1].store.name) : 'best stack') + '</span></div></div>';
-    h += '<div class="chips" role="group" aria-label="Category">' + chip('fy-cat', 'all', 'All', fc === 'all') +
-      orderCats(cats).map(function (c) { return chip('fy-cat', c.id, c.label, fc === c.id, cats[c.id]); }).join('') +
-      (mine.length ? '' : '<button class="chip" data-action="settings" data-focus="cats">Pick your categories…</button>') + '</div>';
-
-    h += '<section><div class="sec-head"><h2>Best matches</h2><span class="hint">value × reliability × your picks</span></div>';
-    h += recs.length ? '<div class="list">' + recs.slice(0, 8).map(function (x) { return couponCard(x, x.why); }).join('') + '</div>' : emptyBox('Nothing here yet', ' Deals show up after the collector runs. Pull to refresh with the button at the top.');
-    h += '</section>';
-
-    var stacks = topStacks(5, fc);
-    if (stacks.length) {
-      h += '<section><div class="sec-head"><h2>Biggest stacks right now</h2><button class="more" data-action="tab" data-tab="way">Best Way</button></div>';
-      h += stacks.map(function (r) { return stackRow(r[0], r[1]); }).join('') + '</section>';
-    }
-    var soon = all.filter(function (x) { return x.a.daysLeft != null && x.a.daysLeft <= 3 && working(x) && (fc === 'all' || x.rec.d.cat === fc) && E.typicalPct(x.a.terms, x.rec.d) > 0; })
-      .sort(function (a, b) { return a.a.daysLeft - b.a.daysLeft || b.a.score - a.a.score; });
-    if (soon.length) h += '<section><div class="sec-head"><h2>Ending soon</h2><span class="hint">3 days or less</span></div><div class="list">' + soon.slice(0, 5).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
-    var tl = tested.filter(function (x) { return fc === 'all' || x.rec.d.cat === fc; });
-    if (tl.length) h += '<section><div class="sec-head"><h2>Worked at checkout</h2></div><div class="list">' + tl.slice(0, 5).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
-    return h;
   }
 
   function catCounts(list) {
@@ -681,74 +850,324 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   function chip(action, val, label, on, n) {
     return '<button class="chip" data-action="' + action + '" data-val="' + esc(val) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(label) + (n ? '<span class="n">' + n + '</span>' : '') + '</button>';
   }
-
-  function viewBrowse() {
-    var b = S.browse;
-    var cats = catCounts(S.items.filter(usable));
-    var h = '<header class="view-head"><h1>Browse</h1><p class="sub">Every coupon, sale and card offer the hub has found.</p></header>';
-    h += '<div class="search">' + ICON.search + '<input class="input" id="bq" type="search" placeholder="Search a store, item or code" autocomplete="off" value="' + esc(b.q) + '"></div>';
-    h += '<div class="chips" role="group" aria-label="Categories">' + chip('br-cat', 'all', 'All', !b.cats.length) +
-      orderCats(cats).map(function (c) { return chip('br-cat', c.id, c.label, b.cats.indexOf(c.id) >= 0, cats[c.id]); }).join('') + '</div>';
-    h += '<div class="filters">' +
-      sel('bstatus', b.status, [['working', 'Should work'], ['tested', 'Tested only'], ['all', 'All active'], ['failed', "Didn't work"]], 'Status') +
-      sel('btype', b.type, [['all', 'All types'], ['code', 'Codes'], ['sale', 'Sales'], ['cardoffer', 'Card offers'], ['portal', 'Cash back sites']], 'Type') +
-      sel('bsort', b.sort, [['best', 'Best match'], ['savings', 'Biggest savings'], ['ending', 'Ending soon'], ['newest', 'Newest'], ['reliable', 'Most reliable']], 'Sort') + '</div>';
-    h += '<div id="bresults">' + browseResults() + '</div>';
-    return h;
-  }
   function sel(id, val, opts, label) {
     return '<select class="input" id="' + id + '" aria-label="' + esc(label) + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === val ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
   }
+  function catOptions(list, val) {
+    var counts = catCounts(list);
+    return [['all', 'All categories']].concat(orderCats(counts).map(function (c) { return [c.id, c.label + ' (' + counts[c.id] + ')']; }));
+  }
 
-  function browseList() {
-    var b = S.browse;
-    var q = b.q.trim().toLowerCase();
+  /* ---------------- For You ---------------- */
+  function viewForYou() {
+    var all = S.items.filter(shown);
+    var codes = all.filter(function (x) { return x.rec.d.kind === 'code'; });
+    var tested = all.filter(function (x) { return x.a.status === 'tested'; });
+    var cats = catCounts(all);
+    var mine = S.settings.categories || [];
+    var fc = S.fy.cat;
+    var recs = S.recs.filter(function (x) { return fc === 'all' || x.rec.d.cat === fc; });
+    var bestStack = topStacks(1)[0];
+    var h = '<header class="view-head"><h1>For you</h1><p class="sub">' +
+      (mine.length ? 'Ranked for ' + mine.map(function (c) { return E.CAT_BY_ID[c] ? E.CAT_BY_ID[c].label : c; }).join(', ') + ', your stores, your list and your cards.' : 'Ranked by real savings, how sure we are they work, your stores, your list and your cards.') + '</p></header>';
+    h += '<div class="tally"><div><b>' + codes.filter(working).length + '</b><span>codes that should work</span></div>' +
+      '<div><b>' + tested.length + '</b><span>worked at a checkout</span></div>' +
+      '<div><b>' + (bestStack ? E.pctStr(bestStack[1].best.totalPct) : '–') + '</b><span>' + (bestStack ? 'best stack, ' + esc(bestStack[1].store.name) : 'best stack') + '</span></div></div>';
+
+    var favs = S.settings.favorites.filter(function (d) { return S.summaries[d] || E.brandByDomain(d); });
+    h += '<section><div class="sec-head"><h2>Your stores</h2><button class="more" data-action="tab" data-tab="stores">All stores</button></div><div class="chips flush">' +
+      (favs.length ? favs.map(function (d) { var s = S.summaries[d] || { total: 0 }; return '<button class="chip store-chip" data-action="store" data-domain="' + esc(d) + '">' + esc(storeOf(d).name) + '<span class="n">' + s.total + '</span></button>'; }).join('') : '<button class="chip" data-action="tab" data-tab="stores">☆ Star the stores you shop at</button>') + '</div></section>';
+
+    h += '<div class="chips" role="group" aria-label="Category">' + chip('fy-cat', 'all', 'All', fc === 'all') +
+      orderCats(cats).map(function (c) { return chip('fy-cat', c.id, c.label, fc === c.id, cats[c.id]); }).join('') +
+      (mine.length ? '' : '<button class="chip" data-action="settings" data-focus="cats">Pick your categories…</button>') + '</div>';
+
+    h += '<section><div class="sec-head"><h2>Best matches</h2><span class="hint">savings × reliability × your picks</span></div>';
+    h += recs.length ? '<div class="list">' + recs.slice(0, 10).map(function (x) { return couponCard(x, x.why); }).join('') + '</div>' : emptyBox('Nothing here yet', ' Deals show up after the collector runs. Tap the refresh button at the top.');
+    h += '</section>';
+
+    var lows = all.filter(function (x) { return x.rec.d.kind === 'product' && x.a.verdict && x.a.verdict.code === 'low' && (fc === 'all' || x.rec.d.cat === fc); })
+      .sort(function (a, b) { return (b.rec.d.product.pct || 0) - (a.rec.d.product.pct || 0); });
+    if (lows.length) h += '<section><div class="sec-head"><h2>Lowest prices we\'ve seen</h2><span class="hint">tracked over time</span></div><div class="list">' + lows.slice(0, 6).map(function (x) { return productRow(x); }).join('') + '</div></section>';
+
+    var stacks = topStacks(5, fc);
+    if (stacks.length) h += '<section><div class="sec-head"><h2>Biggest stacks right now</h2><button class="more" data-action="tab" data-tab="way">Best Way</button></div>' + stacks.map(function (r) { return stackRow(r[0], r[1]); }).join('') + '</section>';
+    var soon = all.filter(function (x) { return x.rec.d.kind !== 'product' && x.a.daysLeft != null && x.a.daysLeft <= 3 && working(x) && (fc === 'all' || x.rec.d.cat === fc); })
+      .sort(function (a, b) { return a.a.daysLeft - b.a.daysLeft || b.a.score - a.a.score; });
+    if (soon.length) h += '<section><div class="sec-head"><h2>Ending soon</h2><span class="hint">3 days or less</span></div><div class="list">' + soon.slice(0, 5).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+    return h;
+  }
+
+  /* ---------------- Codes ---------------- */
+  function codeList() {
+    var c = S.codes;
+    var q = c.q.trim().toLowerCase();
     var rankOf = {};
     S.recs.forEach(function (x, i) { rankOf[x.rec.id] = i; });
     var list = S.items.filter(function (x) {
-      var st = x.a.status;
-      if (b.status === 'working' && !working(x)) return false;
-      if (b.status === 'tested' && st !== 'tested') return false;
-      if (b.status === 'all' && (st === 'failed' || st === 'expired')) return false;
-      if (b.status === 'failed' && st !== 'failed') return false;
-      if (b.type !== 'all' && x.rec.d.kind !== b.type) return false;
-      if (b.cats.length && b.cats.indexOf(x.rec.d.cat) < 0) return false;
+      var d = x.rec.d;
+      if (d.kind !== 'code' || isHidden(d.domain)) return false;
+      if (x.a.status === 'expired') return false;
+      if (c.filter === 'failed') return x.a.status === 'failed';
+      if (x.a.status === 'failed') return false;
+      if (c.filter === 'whole' && !x.a.whole) return false;
+      if (c.filter === 'items' && x.a.whole) return false;
+      if (c.filter === 'tested' && x.a.status !== 'tested') return false;
+      if (c.filter === 'fav' && !isFav(d.domain)) return false;
+      if (c.cat !== 'all' && d.cat !== c.cat) return false;
       if (q) {
-        var d = x.rec.d;
-        var hay = (d.brand + ' ' + d.title + ' ' + (d.code || '') + ' ' + d.terms + ' ' + d.domain).toLowerCase();
+        var hay = (d.brand + ' ' + d.title + ' ' + d.code + ' ' + x.a.applies + ' ' + d.domain).toLowerCase();
         if (q.split(/\s+/).some(function (w) { return hay.indexOf(w) < 0; })) return false;
       }
       return true;
     });
     var sorters = {
-      best: function (a, c) { var ra = rankOf[a.rec.id], rc = rankOf[c.rec.id]; if (ra == null && rc == null) return c.a.score - a.a.score; if (ra == null) return 1; if (rc == null) return -1; return ra - rc; },
-      savings: function (a, c) { return E.typicalPct(c.a.terms, c.rec.d) - E.typicalPct(a.a.terms, a.rec.d); },
-      ending: function (a, c) { var x = a.a.daysLeft == null ? 999 : a.a.daysLeft, y = c.a.daysLeft == null ? 999 : c.a.daysLeft; return x - y; },
-      newest: function (a, c) { return String(c.rec.d.posted || c.rec.fs).localeCompare(String(a.rec.d.posted || a.rec.fs)); },
-      reliable: function (a, c) { return c.a.score - a.a.score; }
+      best: function (a, b) { var ra = rankOf[a.rec.id], rb = rankOf[b.rec.id]; if (ra == null && rb == null) return b.a.score - a.a.score; if (ra == null) return 1; if (rb == null) return -1; return ra - rb; },
+      value: function (a, b) { return E.typicalPct(b.a.terms, b.rec.d) - E.typicalPct(a.a.terms, a.rec.d); },
+      reliable: function (a, b) { return b.a.score - a.a.score; },
+      ending: function (a, b) { var x = a.a.daysLeft == null ? 999 : a.a.daysLeft, y = b.a.daysLeft == null ? 999 : b.a.daysLeft; return x - y; },
+      newest: function (a, b) { return String(b.rec.fs).localeCompare(String(a.rec.fs)); }
     };
-    list.sort(sorters[b.sort] || sorters.best);
+    list.sort(sorters[c.sort] || sorters.best);
     return list;
   }
-  function browseResults() {
-    var list = browseList();
-    var b = S.browse;
-    var h = '<p class="count">' + list.length + (list.length === 1 ? ' deal' : ' deals') + '</p>';
-    if (!list.length) return h + emptyBox('No deals match', ' Try another word, clear a category, or set Status to All active.');
-    h += '<div class="list">' + list.slice(0, b.limit).map(function (x) { return couponCard(x); }).join('') + '</div>';
-    if (list.length > b.limit) h += '<p style="text-align:center;margin-top:14px"><button class="btn ghost" data-action="more">Show ' + Math.min(40, list.length - b.limit) + ' more</button></p>';
+
+  function codeTicket(x) {
+    var d = x.rec.d, a = x.a;
+    var cond = conditions(x);
+    var go = d.url || (E.brandByDomain(d.domain) || {}).url;
+    return '<article class="cticket">' +
+      '<button class="cticket-main" data-action="deal" data-id="' + esc(x.rec.id) + '">' +
+      '<span class="cticket-top"><span class="cvalue">' + esc(a.terms.headline || 'Code') + '</span>' + statusPill(a) + '</span>' +
+      '<span class="ccode">' + esc(d.code) + '</span>' +
+      '<span class="applies"><b>Applies to</b> ' + esc(a.applies) + '</span>' +
+      (cond ? '<span class="gist">' + esc(cond) + '</span>' : '') + '</button>' +
+      '<div class="cticket-actions"><button class="btn sm" data-action="copy" data-val="' + esc(d.code) + '">' + ICON.copy + ' Copy</button>' +
+      (go ? '<a class="btn ghost sm" href="' + esc(go) + '" target="_blank" rel="noopener">' + ICON.out + ' Use it</a>' : '') +
+      '<button class="btn ghost sm" data-action="deal" data-id="' + esc(x.rec.id) + '">Terms</button></div></article>';
+  }
+
+  function viewCodes() {
+    var c = S.codes;
+    var allCodes = S.items.filter(function (x) { return x.rec.d.kind === 'code' && shown(x); });
+    var h = '<header class="view-head"><h1>Coupon codes</h1><p class="sub">Only codes you type at checkout. A code takes money off what the store charges today, so the savings are real. Crossed-out "was" prices can be inflated, so they live under Stores instead.</p></header>';
+    h += '<div class="tally"><div><b>' + allCodes.length + '</b><span>codes</span></div><div><b>' + allCodes.filter(function (x) { return x.a.whole; }).length + '</b><span>work on your whole order</span></div><div><b>' + allCodes.filter(function (x) { return x.a.status === 'tested'; }).length + '</b><span>worked at a checkout</span></div></div>';
+    h += '<div class="search">' + ICON.search + '<input class="input" id="cq" type="search" placeholder="Search a store, item or code" autocomplete="off" value="' + esc(c.q) + '"></div>';
+    h += '<div class="chips" role="group" aria-label="Which codes">' +
+      chip('cd-filter', 'all', 'All', c.filter === 'all') + chip('cd-filter', 'whole', 'Whole order', c.filter === 'whole') +
+      chip('cd-filter', 'items', 'Certain items', c.filter === 'items') + chip('cd-filter', 'tested', 'Worked at checkout', c.filter === 'tested') +
+      chip('cd-filter', 'fav', '★ Your stores', c.filter === 'fav') + chip('cd-filter', 'failed', "Didn't work", c.filter === 'failed') + '</div>';
+    h += '<div class="filters two">' + sel('ccat', c.cat, catOptions(allCodes, c.cat), 'Category') +
+      sel('csort', c.sort, [['best', 'Best match'], ['value', 'Biggest savings'], ['reliable', 'Most reliable'], ['ending', 'Ending soon'], ['newest', 'Newest']], 'Sort') + '</div>';
+    h += '<div id="cresults">' + codeResults() + '</div>';
     return h;
   }
 
-  /* Best way */
+  function codeResults() {
+    var list = codeList();
+    var c = S.codes;
+    var h = '<p class="count">' + plural(list.length, 'code') + '</p>';
+    var anyCodes = S.items.some(function (x) { return x.rec.d.kind === 'code' && shown(x); });
+    if (!anyCodes && c.filter !== 'failed') return h + emptyBox('No codes yet', ' Codes show up here after the collector reads the stores, when the Gmail scanner finds them in your email, or when you save a store page with the Safari add-on.');
+    if (!list.length) return h + emptyBox('No codes match', c.filter === 'tested' ? ' Codes show here after the Safari add-on tests them, or after you mark one as working.' : ' Try another word or a different filter.');
+    // Grouped by store, keeping the overall order of stores.
+    var groups = [];
+    var at = {};
+    list.slice(0, c.limit).forEach(function (x) {
+      var dom = x.rec.d.domain;
+      if (at[dom] == null) { at[dom] = groups.length; groups.push({ dom: dom, items: [] }); }
+      groups[at[dom]].items.push(x);
+    });
+    groups.forEach(function (g) {
+      var st = storeOf(g.dom);
+      h += '<div class="cgroup"><div class="cgroup-head"><button class="linkish" data-action="store" data-domain="' + esc(g.dom) + '">' + esc(st.name) + ICON.chev + '</button>' + starBtn(g.dom) + '</div>' + g.items.map(codeTicket).join('') + '</div>';
+    });
+    if (list.length > c.limit) h += '<p class="center"><button class="btn ghost" data-action="cd-more">Show ' + Math.min(30, list.length - c.limit) + ' more</button></p>';
+    return h;
+  }
+
+  function starBtn(dom) {
+    var on = isFav(dom);
+    return '<button class="star' + (on ? ' on' : '') + '" data-action="star" data-domain="' + esc(dom) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove from your stores' : 'Add to your stores') + '">' + ICON.star + '</button>';
+  }
+
+  /* ---------------- Stores ---------------- */
+  function storeList() {
+    var st = S.stores;
+    var q = st.q.trim().toLowerCase();
+    var seen = {};
+    var rows = [];
+    Object.keys(S.summaries).forEach(function (dom) {
+      if (!realDomain(dom) || isHidden(dom)) return;
+      var s = S.summaries[dom];
+      if (!s.total) return;
+      seen[dom] = 1;
+      rows.push({ dom: dom, s: s, st: storeOf(dom) });
+    });
+    S.settings.favorites.forEach(function (dom) { if (!seen[dom] && !isHidden(dom)) { seen[dom] = 1; rows.push({ dom: dom, s: S.summaries[dom] || E.storeSummary(dom, []), st: storeOf(dom) }); } });
+    rows = rows.filter(function (r) {
+      if (st.filter === 'fav' && !isFav(r.dom)) return false;
+      if (st.filter === 'codes' && !r.s.codes) return false;
+      if (st.cat !== 'all' && r.st.cat !== st.cat) return false;
+      if (q && (r.st.name + ' ' + r.dom).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    rows.sort(function (a, b) { return (isFav(b.dom) ? 1 : 0) - (isFav(a.dom) ? 1 : 0) || (b.s.codes + b.s.offers) - (a.s.codes + a.s.offers) || b.s.total - a.s.total || a.st.name.localeCompare(b.st.name); });
+    return rows;
+  }
+
+  function storeRow(r) {
+    var s = r.s;
+    var bits = [];
+    if (s.codes) bits.push(plural(s.codes, 'code'));
+    if (s.offers) bits.push(plural(s.offers, 'offer'));
+    if (s.products) bits.push(s.products + ' on sale');
+    if (s.cardOffers) bits.push(plural(s.cardOffers, 'card offer'));
+    var right = s.wholePct ? '<span class="pc">' + E.pctStr(Math.round(s.wholePct)) + '<small>off your order</small></span>' : s.bestProductPct ? '<span class="pc">' + s.bestProductPct + '%<small>off items</small></span>' : '<span class="pc muted">–</span>';
+    return '<div class="storerow">' + starBtn(r.dom) + '<button class="storerow-main" data-action="store" data-domain="' + esc(r.dom) + '"><span class="nm">' + esc(r.st.name) + '</span><span class="how">' + esc(bits.join(' · ') || 'No deals right now') + '</span></button>' + right + '</div>';
+  }
+
+  function viewStores() {
+    if (S.stores.view) return viewStore(S.stores.view);
+    var st = S.stores;
+    var all = S.items.filter(shown);
+    var h = '<header class="view-head"><h1>Stores</h1><p class="sub">Every store the app found deals at. Tap one to see all its codes, offers and products on sale, with what each applies to. Star the ones you shop at.</p></header>';
+    h += '<div class="search">' + ICON.search + '<input class="input" id="sq" type="search" placeholder="Search stores or deals" autocomplete="off" value="' + esc(st.q) + '"></div>';
+    h += '<div class="chips">' + chip('st-filter', 'all', 'All', st.filter === 'all') + chip('st-filter', 'fav', '★ Your stores', st.filter === 'fav', S.settings.favorites.length || null) + chip('st-filter', 'codes', 'Has codes', st.filter === 'codes') + '</div>';
+    h += '<div class="filters one">' + sel('scat', st.cat, catOptions(all, st.cat), 'Category') + '</div>';
+    h += '<div id="sresults">' + storeResults() + '</div>';
+    // Add a store, hidden stores
+    h += '<section><div class="sec-head"><h2>Add a store</h2></div><form class="addrow" data-form="addstore"><input class="input" id="addstore" placeholder="Store website, like brooklinen.com" autocomplete="off" autocapitalize="off"><button class="btn" type="submit">Add</button></form><p class="gist" style="margin-top:6px">The collector starts reading it on its next run and stars it for you.</p></section>';
+    if (S.settings.hidden.length) h += '<section><div class="sec-head"><h2>Hidden stores</h2></div><div class="chips flush wrap">' + S.settings.hidden.map(function (d) { return '<button class="chip" data-action="unhide" data-domain="' + esc(d) + '">' + esc(storeOf(d).name) + ' · show</button>'; }).join('') + '</div></section>';
+    return h;
+  }
+
+  function storeResults() {
+    var st = S.stores;
+    var rows = storeList();
+    var h = '';
+    var q = st.q.trim().toLowerCase();
+    if (q) {
+      var deals = S.items.filter(function (x) {
+        if (!shown(x)) return false;
+        var d = x.rec.d;
+        var hay = (d.brand + ' ' + d.title + ' ' + (d.code || '') + ' ' + x.a.applies + ' ' + (d.product ? d.product.name : '')).toLowerCase();
+        return q.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+      }).sort(function (a, b) { return b.a.score * (E.typicalPct(b.a.terms, b.rec.d) + 1) - a.a.score * (E.typicalPct(a.a.terms, a.rec.d) + 1); });
+      h += '<p class="count">' + plural(rows.length, 'store') + ' · ' + plural(deals.length, 'deal') + '</p>';
+      if (rows.length) h += '<div class="panel flat">' + rows.slice(0, 8).map(storeRow).join('') + '</div>';
+      if (deals.length) h += '<section><div class="sec-head"><h2>Matching deals</h2></div><div class="list">' + deals.slice(0, 20).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+      if (!rows.length && !deals.length) h += emptyBox('Nothing matches', ' Try a store name, an item, or add the store below.');
+      return h;
+    }
+    h += '<p class="count">' + plural(rows.length, 'store') + '</p>';
+    if (!rows.length) return h + emptyBox(st.filter === 'fav' ? 'No stores starred yet' : 'No stores yet', st.filter === 'fav' ? ' Tap the star next to a store to keep it at the top and get alerts for its new codes.' : ' Stores show up after the collector runs.');
+    return h + '<div class="panel flat">' + rows.slice(0, 200).map(storeRow).join('') + '</div>';
+  }
+
+  function viewStore(dom) {
+    var st = storeOf(dom);
+    var items = (S.byDomain[dom] || []).filter(usable);
+    var codes = items.filter(function (x) { return x.rec.d.kind === 'code'; }).sort(function (a, b) { return (b.a.whole ? 1 : 0) - (a.a.whole ? 1 : 0) || b.a.score - a.a.score; });
+    var offers = items.filter(function (x) { return x.rec.d.kind === 'sale'; });
+    var prods = items.filter(function (x) { return x.rec.d.kind === 'product'; });
+    var cards = items.filter(function (x) { return x.rec.d.kind === 'cardoffer' || x.rec.d.kind === 'portal'; });
+    var plan = S.stacks[dom];
+    var report = storeReport(dom);
+    var dealsPage = report && report.pages ? (report.pages.filter(function (p) { return p.ok && !/products\.json|api\/|search\/results/.test(p.u); })[1] || {}).u : null;
+    var h = '<div class="backbar"><button class="iconbtn" data-action="back" aria-label="Back to stores">' + ICON.back + '</button><span class="eyebrow">Store</span></div>';
+    h += '<header class="view-head store-head"><div class="sh-row"><h1>' + esc(st.name) + '</h1>' + starBtn(dom) + '</div>' +
+      '<p class="sub">' + [codes.length ? plural(codes.length, 'code') : null, offers.length ? plural(offers.length, 'offer') : null, prods.length ? prods.length + ' products on sale' : null, cards.length ? plural(cards.length, 'card offer') : null].filter(Boolean).join(' · ') + '</p>' +
+      '<div class="btnrow" style="margin-top:10px">' + (st.url ? '<a class="btn ghost sm" href="' + esc(st.url) + '" target="_blank" rel="noopener">' + ICON.out + ' Open ' + esc(st.name) + '</a>' : '') +
+      (dealsPage ? '<a class="btn ghost sm" href="' + esc(dealsPage) + '" target="_blank" rel="noopener">' + ICON.out + ' Their deals page</a>' : '') +
+      '<button class="btn ghost sm" data-action="hide-store" data-domain="' + esc(dom) + '">Hide store</button></div></header>';
+
+    if (plan && plan.best && realDomain(dom)) {
+      var sAmt = sampleAmount(dom);
+      if (sAmt !== 100) plan = E.planForStore(st, S.byDomain[dom] || [], S.settings, sAmt);
+      var b = plan.best;
+      h += '<section><div class="sec-head"><h2>Best way to pay</h2><button class="more" data-action="way" data-domain="' + esc(dom) + '" data-amount="' + sAmt + '">Steps</button></div>' +
+        '<button class="stackrow" data-action="way" data-domain="' + esc(dom) + '" data-amount="' + sAmt + '"><span class="nm">Save ' + E.money(b.total) + ' on a ' + E.money(sAmt) + ' order</span><span class="pc">' + E.pctStr(b.totalPct) + '<small>total</small></span><span class="how">' + esc(stackSummary(plan)) + '</span></button>' +
+        (plan.also && plan.also.length ? '<p class="gist" style="margin-top:6px">Not counted because they only cover some items: ' + esc(plan.also.map(function (a) { return a.text; }).join('; ')) + '.</p>' : '') + '</section>';
+    }
+    if (codes.length) h += '<section><div class="sec-head"><h2>Coupon codes</h2><span class="hint">type these at checkout</span></div>' + codes.map(codeTicket).join('') + '</section>';
+    if (offers.length) {
+      // Group by what they apply to.
+      var groups = {};
+      var order = [];
+      offers.sort(function (a, b) { return (b.a.whole ? 1 : 0) - (a.a.whole ? 1 : 0) || E.typicalPct(b.a.terms, b.rec.d) - E.typicalPct(a.a.terms, a.rec.d); }).forEach(function (x) {
+        var g = x.a.whole ? 'Storewide offers' : 'Offers on certain items';
+        if (!groups[g]) { groups[g] = []; order.push(g); }
+        groups[g].push(x);
+      });
+      order.forEach(function (g) { h += '<section><div class="sec-head"><h2>' + esc(g) + '</h2><span class="hint">no code needed</span></div><div class="list">' + groups[g].map(function (x) { return couponCard(x); }).join('') + '</div></section>'; });
+    }
+    if (prods.length) {
+      var sort = S.stores.prodSort;
+      prods.sort(function (a, b) {
+        var pa = a.rec.d.product, pb = b.rec.d.product;
+        if (sort === 'price') return pa.price - pb.price;
+        if (sort === 'verdict') return verdictRank(b) - verdictRank(a) || (pb.pct || 0) - (pa.pct || 0);
+        return (pa.stock === 'out') - (pb.stock === 'out') || (pb.pct || 0) - (pa.pct || 0);
+      });
+      var secs = {};
+      prods.forEach(function (x) { var s = x.rec.d.section || 'On sale'; secs[s] = (secs[s] || 0) + 1; });
+      h += '<section><div class="sec-head"><h2>Products on sale</h2><span class="hint">' + prods.length + ' items</span></div>' +
+        '<p class="gist" style="margin:-4px 0 10px">The store\'s own "was" prices. The badge tells you whether the app has seen this price before.</p>' +
+        '<div class="filters one">' + sel('psort', sort, [['pct', 'Biggest % off'], ['verdict', 'Real price drops first'], ['price', 'Lowest price']], 'Sort products') + '</div>' +
+        '<div class="list">' + prods.slice(0, S.stores.prodLimit).map(function (x) { return productRow(x); }).join('') + '</div>' +
+        (prods.length > S.stores.prodLimit ? '<p class="center"><button class="btn ghost" data-action="prod-more">Show more</button></p>' : '') + '</section>';
+    }
+    if (cards.length) h += '<section><div class="sec-head"><h2>Card offers</h2></div><div class="list">' + cards.map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+    if (!items.length) h += emptyBox('No deals right now', report && !report.ok ? ' ' + st.name + ' blocks automated visits, so the collector can\'t read it. Open their deals page in Safari and tap the Deal Stack button to save what\'s there.' : ' Nothing was found on its pages on the last run.');
+    h += '<section><div class="sec-head"><h2>Where the app looked</h2></div>' + lookedBlock(dom, report) + '</section>';
+    return h;
+  }
+
+  function sourceWords(d, name) {
+    name = name || d.brand;
+    if (d.sourceType === 'official') return d.sourceName && !/website$/i.test(d.sourceName) ? d.sourceName : name + "'s own website";
+    if (d.sourceType === 'email') return d.sourceName || 'your Gmail';
+    if (d.sourceType === 'card') return d.sourceName || 'your card offers';
+    if (d.sourceType === 'capture') return 'a page you saved in Safari';
+    return d.sourceName || 'a deal site';
+  }
+
+  function verdictRank(x) { var v = x.a.verdict; return !v ? 0 : v.code === 'low' ? 3 : v.code === 'steady' ? 2 : v.code === 'new' ? 1 : v.code === 'higher' ? -1 : -2; }
+
+  function storeReport(dom) {
+    var col = S.raw && S.raw.status && S.raw.status.collector;
+    if (!col || !col.details) return null;
+    for (var i = 0; i < col.details.length; i++) if (col.details[i].domain === dom) return Object.assign({ runAt: col.runAt }, col.details[i]);
+    return null;
+  }
+
+  function lookedBlock(dom, report) {
+    if (!report) {
+      var srcs = {}, pages = {};
+      var name = storeOf(dom).name;
+      (S.byDomain[dom] || []).forEach(function (x) {
+        var d = x.rec.d;
+        srcs[sourceWords(d, name)] = 1;
+        var u = d.pageUrl || (d.sourceType === 'official' ? d.url : null);
+        if (u) pages[u] = 1;
+      });
+      var pl = Object.keys(pages);
+      return '<p class="gist">These deals came from ' + esc(Object.keys(srcs).join(', ') || 'nowhere yet') + '.</p>' +
+        (pl.length ? '<div class="src-list">' + pl.slice(0, 12).map(function (u) { return '<div><i class="ok"></i><span class="mono"><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(shortHost(u)) + '</a></span></div>'; }).join('') + '</div>' : '');
+    }
+    return '<p class="gist">Last checked ' + esc(E.agoText(E.hoursSince(report.runAt, new Date()))) + '. ' + esc(report.note || '') + '</p>' +
+      '<div class="src-list">' + (report.pages || []).map(function (p) { return '<div><i class="' + (p.ok ? 'ok' : '') + '"></i><span class="mono">' + esc(shortHost(p.u)) + '<small>' + esc(p.n || '') + '</small></span></div>'; }).join('') + '</div>';
+  }
+
+  /* ---------------- Best Way ---------------- */
   function allStores() {
     var seen = {};
     var out = [];
     Object.keys(S.byDomain).forEach(function (dom) {
       if (!realDomain(dom)) return;
-      var st = E.storeFor(dom, S.byDomain[dom].map(function (x) { return x.rec; }));
       seen[dom] = 1;
-      out.push({ domain: dom, name: st.name, n: S.byDomain[dom].filter(usable).length, pseudo: !!st.pseudo });
+      out.push({ domain: dom, name: storeOf(dom).name, n: S.byDomain[dom].filter(usable).length, pseudo: false });
     });
     E.BRANDS.forEach(function (b) { if (!seen[b.domain]) { seen[b.domain] = 1; out.push({ domain: b.domain, name: b.name, n: 0, pseudo: b.pseudo }); } });
     return out;
@@ -763,8 +1182,8 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   }
   function viewWay() {
     var w = S.way;
-    var st = w.domain ? E.storeFor(w.domain, (S.byDomain[w.domain] || []).map(function (x) { return x.rec; })) : null;
-    var h = '<header class="view-head"><h1>Best way to pay</h1><p class="sub">Pick where you\'re shopping and how much. You get the order of steps that saves the most, using your codes, offers and cards.</p></header>';
+    var st = w.domain ? storeOf(w.domain) : null;
+    var h = '<header class="view-head"><h1>Best way to pay</h1><p class="sub">Pick where you\'re shopping and how much. You get the steps, in order, that save the most with your codes, offers and cards. Only deals that cover your whole order are counted.</p></header>';
     h += '<div class="waygrid"><div class="picker"><label class="lbl" for="wayq">Store</label><input class="input" id="wayq" type="search" autocomplete="off" placeholder="Search stores" value="' + esc(w.q || (st ? st.name : '')) + '"><div class="suggest" id="waysug" hidden></div></div>' +
       '<div class="amount"><label class="lbl" for="wayamt">Spending</label><div style="position:relative"><span>$</span><input class="input" id="wayamt" type="number" inputmode="decimal" min="1" step="1" value="' + esc(w.amount) + '"></div></div></div>';
     var quick = E.BRANDS.filter(function (b) { return b.pseudo; }).slice(0, 7);
@@ -789,7 +1208,9 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     h += '<div class="plan-body"><ol class="steps">' + b.steps.map(function (s) { return '<li><span>' + esc(s) + '</span></li>'; }).join('') + '</ol>';
     h += '<div class="parts">' + b.parts.map(function (p) { return '<div><span>' + esc(p.label) + '</span><span>' + E.money(p.amt) + '</span></div>'; }).join('') +
       '<div class="tot"><span>Total saved</span><span>' + E.money(b.total) + '</span></div></div>';
-    var notes = plan.warnings.map(function (w) { return '<div class="note warnnote">' + esc(w) + '</div>'; }).concat(b.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }));
+    var notes = plan.warnings.map(function (w) { return '<div class="note warnnote">' + esc(w) + '</div>'; })
+      .concat((plan.also || []).map(function (a) { return '<div class="note">Also here, if your cart has those items: ' + esc(a.text) + '.</div>'; }))
+      .concat(b.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }));
     if (notes.length) h += '<div class="notes">' + notes.join('') + '</div>';
     if (plan.options.length > 1) {
       h += '<details><summary>Other ways to pay</summary><div class="alts" style="margin-top:8px">' + plan.options.slice(1).map(function (o) {
@@ -797,24 +1218,22 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       }).join('') + '</div></details>';
     }
     h += '</div></div>';
-    var deals = items.filter(usable).sort(function (a, c) { return c.a.score - a.a.score; });
-    if (deals.length) h += '<section><div class="sec-head"><h2>Deals at ' + esc(st.name) + '</h2></div><div class="list">' + deals.slice(0, 10).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+    if (!st.pseudo && items.filter(usable).length) h += '<p style="margin-top:12px"><button class="btn ghost sm" data-action="store" data-domain="' + esc(st.domain) + '">All deals at ' + esc(st.name) + ICON.chev + '</button></p>';
     else if (!st.pseudo) h += '<p class="count">No coupons for ' + esc(st.name) + ' right now. The card advice above still applies.</p>';
-    if (st.url) h += '<p style="margin-top:12px"><a class="btn ghost sm" href="' + esc(st.url) + '" target="_blank" rel="noopener">' + ICON.out + ' Go to ' + esc(st.name) + '</a></p>';
     return h;
   }
 
-  /* My list */
+  /* ---------------- My List ---------------- */
   function viewList() {
     var plan = S.settings.plan || [];
-    var h = '<header class="view-head"><h1>My list</h1><p class="sub">Things you plan to buy. The app watches for deals on them and moves matches to the top of For You.</p></header>';
+    var h = '<header class="view-head"><h1>My list</h1><p class="sub">Things you plan to buy. The app watches for deals on them, moves matches to the top of For You, and can alert you.</p></header>';
     h += '<form class="addrow" data-form="plan"><input class="input" id="planq" placeholder="A store, an item, or a type of thing" autocomplete="off"><button class="btn" type="submit">Add</button></form>';
     var mine = plan.filter(function (p) { return p.type === 'category'; }).map(function (p) { return p.cat; });
     h += '<div class="chips">' + E.CATEGORIES.filter(function (c) { return c.id !== 'general' && mine.indexOf(c.id) < 0; }).map(function (c) { return '<button class="chip" data-action="plan-cat" data-val="' + c.id + '">+ ' + esc(c.label) + '</button>'; }).join('') + '</div>';
     if (!plan.length) return h + '<section>' + emptyBox('Your list is empty', ' Add something like "running shoes", "Costco" or "air fryer".') + '</section>';
     h += '<section>';
     plan.forEach(function (item, i) {
-      var all = S.items.filter(usable).map(function (x) { var hm = E.planMatches([item], x.rec); return hm.length ? { x: x, loose: !!hm[0].loose } : null; }).filter(Boolean);
+      var all = S.items.filter(shown).map(function (x) { var hm = E.planMatches([item], x.rec); return hm.length ? { x: x, loose: !!hm[0].loose } : null; }).filter(Boolean);
       var exact = all.filter(function (m) { return !m.loose; }).map(function (m) { return m.x; });
       var loose = all.filter(function (m) { return m.loose; }).map(function (m) { return m.x; });
       var byVal = function (a, b) { return b.a.score * E.typicalPct(b.a.terms, b.rec.d) - a.a.score * E.typicalPct(a.a.terms, a.rec.d); };
@@ -823,33 +1242,31 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       var open = !!S.listOpen[i];
       var label = item.type === 'category' ? (E.CAT_BY_ID[item.cat] || {}).label || item.text : item.text;
       var top = matches[0];
-      var countTxt = exact.length ? exact.length + (exact.length === 1 ? ' match' : ' matches') + (loose.length ? ' + ' + loose.length + ' related' : '') : loose.length ? loose.length + ' related' : 'no deals yet';
+      var countTxt = exact.length ? plural(exact.length, 'match', 'matches') + (loose.length ? ' + ' + loose.length + ' related' : '') : loose.length ? loose.length + ' related' : 'no deals yet';
       h += '<div class="planitem"><div class="ph"><b>' + esc(label) + '</b><small>' + countTxt + '</small>' +
         (matches.length ? '<button class="btn ghost sm" data-action="list-open" data-i="' + i + '">' + (open ? 'Hide' : 'Show') + '</button>' : '') +
         '<button class="x" data-action="list-del" data-i="' + i + '" aria-label="Remove ' + esc(label) + '">' + ICON.close + '</button></div>';
-      if (top && !open) h += '<div class="gist" style="margin-top:6px">' + (exact.length ? 'Best now: ' : 'Related: ') + esc(top.rec.d.brand) + ', ' + esc(top.a.terms.headline || top.rec.d.title) + '</div>';
+      if (top && !open) h += '<div class="gist" style="margin-top:6px">' + (exact.length ? 'Best now: ' : 'Related: ') + esc(top.rec.d.brand) + ', ' + esc(top.rec.d.kind === 'product' ? top.rec.d.title + ' ' + E.money(top.rec.d.product.price) : (top.a.terms.headline || top.rec.d.title) + ' on ' + top.a.applies.toLowerCase()) + '</div>';
       if (open) {
         h += '<div class="pm">' + matches.slice(0, 8).map(function (x) { return couponCard(x); }).join('') + '</div>';
         var b = E.brandByName(item.text);
-        if (b) h += '<p style="margin:10px 0 0"><button class="btn ghost sm" data-action="way" data-domain="' + esc(b.domain) + '">Best way to pay at ' + esc(b.name) + '</button></p>';
+        if (b) h += '<p style="margin:10px 0 0"><button class="btn ghost sm" data-action="store" data-domain="' + esc(b.domain) + '">All deals at ' + esc(b.name) + '</button></p>';
       }
       h += '</div>';
     });
     return h + '</section>';
   }
 
-  /* Cards */
+  /* ---------------- Cards ---------------- */
   function viewCards() {
     var on = S.settings.cards || [];
     var h = '<header class="view-head"><h1>Your cards</h1><p class="sub">Turn on the cards you carry. The app uses them to pick the best way to pay and to stack card offers.</p></header>';
-    h += '<div class="banner" style="background:var(--info-bg);color:var(--info)">You mentioned a "Venture One X". Turn on whichever one you have: <b>VentureOne</b> (1.25 miles per $1) or <b>Venture X</b> (2 miles per $1).</div>';
+    h += '<div class="banner info">You mentioned a "Venture One X". Turn on whichever one you have: <b>VentureOne</b> (1.25 miles per $1) or <b>Venture X</b> (2 miles per $1).</div>';
     h += '<section class="wallet">' + E.CARDS.map(function (c) {
       var notes = E.CARD_NOTES[c.id] || [];
       return '<div class="wcard"><div class="wh"><b>' + esc(c.name) + '</b><label class="switch"><input type="checkbox" data-change="card" data-card="' + c.id + '"' + (on.indexOf(c.id) >= 0 ? ' checked' : '') + ' aria-label="I have the ' + esc(c.name) + '"><span></span></label></div>' +
         '<ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul></div>';
     }).join('') + '</section>';
-
-    // Venmo Stash
     var st = S.settings.stash || { tier: 1, brands: [] };
     h += '<section><div class="sec-head"><h2>Venmo Stash</h2></div><div class="panel pad">' +
       '<div class="lbl">Your cash back level</div><div class="seg" role="group" style="margin-top:6px">' +
@@ -858,8 +1275,6 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       '<p class="gist" style="margin:4px 0 0">Pick the brands in the bundle you chose in the Venmo app. You can swap bundles every 30 days.</p>' +
       '<input class="input" id="stashq" style="margin-top:8px" placeholder="Find a brand" value="' + esc(S.stashQ) + '" autocomplete="off">' +
       '<div class="brandpick" id="stashpick">' + stashChips() + '</div></div></section>';
-
-    // Card offers
     var counts = {};
     var lastSeen = {};
     S.items.forEach(function (x) {
@@ -881,8 +1296,6 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       return '<div class="progrow"><div><b>' + esc(p[1]) + '</b><small>' + (n ? n + ' active · saved ' + E.agoText(E.hoursSince(lastSeen[p[0]], new Date())) : 'None saved yet') + '</small><small>' + esc(p[3]) + '</small></div>' +
         (p[2] ? '<a class="btn ghost sm" href="' + p[2] + '" target="_blank" rel="noopener">Open</a>' : '') + '</div>';
     }).join('') + '</div></section>';
-
-    // Screenshot import
     h += '<section><div class="sec-head"><h2>Import a screenshot</h2></div><div class="panel pad">' +
       '<p class="gist" style="margin:0 0 10px">For offers that only live inside an app, like Venmo. The text is read on your phone.</p>' +
       '<div class="field"><label for="ocrprog">These offers are from</label>' + sel('ocrprog', S.ocrProgram, [['venmo', 'Venmo offers'], ['capitalone', 'Capital One Offers'], ['c1shopping', 'Capital One Shopping'], ['citi', 'Citi offers']], 'Program') + '</div>' +
@@ -918,12 +1331,19 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   function openSheet(kind, arg) { S.sheet = { kind: kind, arg: arg, full: false }; paintSheet(); }
   function closeSheet() { S.sheet = null; paintSheet(); }
   function paintSheet() {
-    var host = $('#sheethost');
-    if (!host) return;
-    if (!S.sheet) { host.innerHTML = ''; document.body.style.overflow = ''; return; }
+    var hostEl = $('#sheethost');
+    if (!hostEl) return;
+    if (!S.sheet) { hostEl.innerHTML = ''; document.body.style.overflow = ''; return; }
     var body = S.sheet.kind === 'deal' ? dealSheet(S.sheet.arg) : settingsSheet();
-    host.innerHTML = '<div class="backdrop" data-action="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>' + body + '</div>';
+    hostEl.innerHTML = '<div class="backdrop" data-action="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>' + body + '</div>';
     document.body.style.overflow = 'hidden';
+  }
+
+  function itemsBlock(items, heading) {
+    if (!items || !items.length) return '';
+    return '<div class="block"><h4>' + esc(heading) + '</h4><div class="mini-list">' + items.map(function (it) {
+      return '<a class="mini" href="' + esc(it.u || '#') + '" target="_blank" rel="noopener">' + thumb(it.i, it.n, 'sm') + '<span class="mini-name">' + esc(it.n) + (it.s === 'out' ? ' <em>(out of stock)</em>' : '') + '</span><span class="mini-price"><b>' + (it.p != null ? E.money(it.p) : '') + '</b>' + (it.w ? '<s>' + E.money(it.w) + '</s>' : '') + '</span></a>';
+    }).join('') + '</div></div>';
   }
 
   function dealSheet(id) {
@@ -931,83 +1351,161 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     if (!x) return '<p>That deal is gone.</p>';
     var d = x.rec.d, a = x.a, p = a.terms;
     var brand = E.brandByDomain(d.domain);
-    var storeUrl = d.kind === 'cardoffer' || d.kind === 'portal' ? ((E.PROGRAMS[d.card] || E.PROGRAMS[d.portal] || {}).url) : (brand && brand.url) || d.url;
+    var useUrl = d.kind === 'cardoffer' || d.kind === 'portal' ? ((E.PROGRAMS[d.card] || E.PROGRAMS[d.portal] || {}).url) : d.url || (brand && brand.url);
     var h = '<div class="sheet-head"><h3>' + esc(d.brand) + '</h3><button class="iconbtn" data-action="close" aria-label="Close">' + ICON.close + '</button></div>';
-    h += '<div class="detail-val">' + stubFor(x) + '<div style="min-width:0"><div class="ctitle" style="-webkit-line-clamp:4">' + esc(d.title) + '</div>' + (p.gist ? '<div class="gist" style="margin-top:4px">' + esc(p.gist) + '</div>' : '') + '</div></div>';
-    if (d.code) h += '<div class="codebox"><code>' + esc(d.code) + '</code><button class="btn sm" data-action="copy" data-val="' + esc(d.code) + '">' + ICON.copy + ' Copy</button></div>';
-    h += '<div class="btnrow" style="margin-top:12px">' + (storeUrl ? '<a class="btn" href="' + esc(storeUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Go to ' + esc(d.kind === 'cardoffer' || d.kind === 'portal' ? (kindWord(d) || 'site') : d.brand) + '</a>' : '') +
-      (d.sourceUrl && d.sourceUrl !== storeUrl ? '<a class="btn ghost" href="' + esc(d.sourceUrl) + '" target="_blank" rel="noopener">See the post</a>' : '') + '</div>';
-    if (d.sample) h += '<div class="banner">This is a sample deal for the preview, not a real offer.</div>';
+    if (realDomain(d.domain)) h += '<button class="linkish" data-action="store" data-domain="' + esc(d.domain) + '">All deals at ' + esc(d.brand) + ICON.chev + '</button>';
+    if (d.sample) h += '<div class="banner">Sample deal for the preview, not a real offer.</div>';
 
-    h += '<div class="block"><h4>What you need to do</h4><ul class="bullets">' + p.bullets.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>';
-    if (d.terms) {
-      h += '<button class="toggle-terms" data-action="terms">' + (S.sheet.full ? 'Hide full terms' : 'More details: full terms') + '</button>';
-      if (S.sheet.full) h += '<div class="fullterms">' + esc(d.terms) + '</div>';
+    if (d.kind === 'product') {
+      var pr = d.product || {};
+      h += '<div class="pdetail">' + thumb(pr.img, pr.name, 'lg') + '<div><div class="ctitle" style="-webkit-line-clamp:5">' + esc(pr.name) + '</div>' +
+        '<div class="pbig"><b>' + E.money(pr.price) + '</b>' + (pr.was ? '<s>' + E.money(pr.was) + '</s>' : '') + (pr.pct ? '<span class="ppct">' + pr.pct + '% off</span>' : '') + '</div>' +
+        (pr.stock === 'out' ? '<span class="vbadge v-higher">Out of stock when last checked</span>' : '') + '</div></div>';
+      h += '<div class="btnrow" style="margin-top:12px">' + (useUrl ? '<a class="btn" href="' + esc(useUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Go to this product</a>' : '') + '</div>';
+      h += '<div class="block"><h4>Is it really a deal?</h4>' + (a.verdict ? '<p class="verdict v-' + esc(a.verdict.code) + '">' + verdictBadge(a.verdict) + ' ' + esc(a.verdict.text) + '</p>' : '') +
+        '<p class="gist">' + (pr.was ? 'The ' + E.money(pr.was) + ' "was" price is the store\'s own claim. ' : 'This is the price as posted. ') + 'The app records this product\'s price on every run, so it can tell you when a "sale" price never changes or when it really drops.</p></div>';
+      var whole = (S.byDomain[d.domain] || []).filter(function (y) { return usable(y) && y.rec.d.kind === 'code' && y.a.whole; });
+      if (whole.length) h += '<div class="block"><h4>Codes that work on your whole order here</h4>' + whole.slice(0, 3).map(codeTicket).join('') + '</div>';
+      if (d.terms) h += '<div class="block"><h4>What the page said</h4><div class="fullterms">' + esc(d.terms) + '</div></div>';
+    } else {
+      h += '<div class="detail-val">' + stubFor(x) + '<div style="min-width:0"><div class="ctitle" style="-webkit-line-clamp:5">' + esc(d.title) + '</div>' + (d.headline ? '<div class="gist" style="margin-top:4px">' + esc(d.headline) + '</div>' : '') + '</div></div>';
+      h += '<div class="applies-box"><div class="eyebrow">Applies to</div><div class="ab-text">' + esc(String(a.applies).replace(/ \(\d+ example items? in the details\)/, '')) + '</div>' +
+        (d.scope && d.scope.type === 'order' && d.scope.note ? '<div class="gist">Promoted for: ' + esc(d.scope.note) + '</div>' : '') +
+        (!a.whole && (d.kind === 'code' || d.kind === 'sale') ? '<div class="gist">Only the items it covers get the discount, so Best Way doesn\'t count it in your order total.</div>' : '') + '</div>';
+      if (d.code) h += '<div class="codebox"><code>' + esc(d.code) + '</code><button class="btn sm" data-action="copy" data-val="' + esc(d.code) + '">' + ICON.copy + ' Copy</button></div>';
+      h += '<div class="btnrow" style="margin-top:12px">' + (useUrl ? '<a class="btn" href="' + esc(useUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' ' + (d.kind === 'cardoffer' || d.kind === 'portal' ? 'Open ' + esc(kindWord(d) || 'site') : d.scope && d.scope.type === 'category' ? 'Shop what it covers' : 'Go to ' + esc(d.brand)) + '</a>' : '') +
+        (d.sourceUrl && d.sourceUrl !== useUrl ? '<a class="btn ghost" href="' + esc(d.sourceUrl) + '" target="_blank" rel="noopener">See the post</a>' : '') + '</div>';
+      if (d.scope && d.scope.items && d.scope.items.length) h += itemsBlock(d.scope.items, 'Examples of what it covers (from the store\'s page)');
+      h += '<div class="block"><h4>What you need to do</h4><ul class="bullets">' + p.bullets.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul></div>';
+      // Fine print, word for word, with where it came from
+      h += '<div class="block"><h4>Fine print</h4>';
+      if (d.terms) {
+        h += '<button class="toggle-terms" data-action="terms">' + (S.sheet.full ? 'Hide the full terms' : 'Show the full terms, word for word') + '</button>';
+        if (S.sheet.full) h += '<div class="fullterms">' + esc(d.terms) + '</div>';
+        if (d.termsUrl) h += '<p class="gist" style="margin-top:6px">From <a href="' + esc(d.termsUrl) + '" target="_blank" rel="noopener">' + esc(shortHost(d.termsUrl)) + '</a></p>';
+      } else {
+        h += '<p class="gist">' + (d.v >= 2 ? 'Terms not posted on the page it came from.' : 'No terms were saved.') + (d.pageUrl || d.url ? ' <a href="' + esc(d.pageUrl || d.url) + '" target="_blank" rel="noopener">Check the page</a>' : '') + '</p>';
+      }
+      h += '</div>';
     }
+
+    h += '<div class="block"><h4>' + (d.kind === 'product' ? 'How sure we are' : 'Will it work?') + '</h4>' + statusPill(a) + '<div class="meter" aria-hidden="true"><i style="width:' + a.score + '%"></i></div><div class="reasons">' +
+      a.reasons.map(function (r) { return '<div class="' + (r.good ? 'good' : 'bad') + '">' + esc(r.t) + '</div>'; }).join('') + '</div>';
+    if (d.kind !== 'product') h += '<div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-action="mark" data-ok="1" data-id="' + esc(id) + '">It worked</button><button class="btn ghost sm" data-action="mark" data-ok="0" data-id="' + esc(id) + '">It didn\'t work</button><button class="btn ghost sm" data-action="hide" data-id="' + esc(id) + '">Hide</button></div>';
+    else h += '<div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-action="hide" data-id="' + esc(id) + '">Hide</button></div>';
     h += '</div>';
 
-    h += '<div class="block"><h4>Will it work?</h4>' + statusPill(a) + '<div class="meter" aria-hidden="true"><i style="width:' + a.score + '%"></i></div><div class="reasons">' +
-      a.reasons.map(function (r) { return '<div class="' + (r.good ? 'good' : 'bad') + '">' + esc(r.t) + '</div>'; }).join('') + '</div>';
-    h += '<div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-action="mark" data-ok="1" data-id="' + esc(id) + '">It worked</button><button class="btn ghost sm" data-action="mark" data-ok="0" data-id="' + esc(id) + '">It didn\'t work</button><button class="btn ghost sm" data-action="hide" data-id="' + esc(id) + '">Hide</button></div></div>';
-
-    if (realDomain(d.domain)) {
-      var st = E.storeFor(d.domain, (S.byDomain[d.domain] || []).map(function (y) { return y.rec; }));
-      var plan = S.stacks[d.domain];
+    if (realDomain(d.domain) && (a.whole || d.kind === 'cardoffer' || d.kind === 'portal' || d.kind === 'product')) {
+      var amt = d.kind === 'product' && d.product ? d.product.price : a.whole && a.terms.minSpend > 100 ? a.terms.minSpend : 100;
+      var plan = E.planForStore(storeOf(d.domain), S.byDomain[d.domain] || [], S.settings, amt);
       if (plan && plan.best) {
-        h += '<div class="block"><h4>Best way to use it</h4><div class="gist">On a $100 order at ' + esc(st.name) + ': save <b>' + E.money(plan.best.total) + '</b> paying with your ' + esc(plan.best.card.short) + '.</div>' +
+        h += '<div class="block"><h4>Best way to use it</h4><div class="gist">On a ' + E.money(amt) + ' order at ' + esc(d.brand) + ': save <b>' + E.money(plan.best.total) + '</b> paying with your ' + esc(plan.best.card.short) + '.</div>' +
           '<ol class="steps" style="margin-top:10px">' + plan.best.steps.map(function (s) { return '<li><span>' + esc(s) + '</span></li>'; }).join('') + '</ol>' +
-          '<button class="btn ghost sm" style="margin-top:10px" data-action="way" data-domain="' + esc(d.domain) + '">Change amount</button></div>';
+          '<button class="btn ghost sm" style="margin-top:10px" data-action="way" data-domain="' + esc(d.domain) + '" data-amount="' + amt + '">Change amount</button></div>';
       }
     }
     var cat = E.CAT_BY_ID[d.cat];
     h += '<div class="block"><h4>Details</h4><dl class="kv"><dt>Category</dt><dd>' + esc(cat ? cat.label : d.cat) + '</dd>' +
+      (d.section ? '<dt>Section</dt><dd>' + esc(d.section) + '</dd>' : '') +
       '<dt>Found</dt><dd>' + esc(E.fmtDay(x.rec.fs)) + (x.rec.ls && x.rec.ls !== x.rec.fs ? ', last seen ' + esc(E.agoText(E.hoursSince(x.rec.ls, new Date()))) : '') + '</dd>' +
       (a.expires ? '<dt>Ends</dt><dd>' + esc(E.fmtDay(a.expires)) + (d.expSet ? '' : ' (estimated)') + '</dd>' : '') +
-      (d.price ? '<dt>Price</dt><dd>' + E.money(d.price) + '</dd>' : '') +
-      '<dt>Store site</dt><dd class="mono">' + esc(d.domain) + '</dd></dl></div>';
+      '<dt>Source</dt><dd>' + esc(sourceWords(d)) + '</dd>' +
+      (d.pageUrl ? '<dt>Found on</dt><dd><a href="' + esc(d.pageUrl) + '" target="_blank" rel="noopener" class="mono">' + esc(shortHost(d.pageUrl)) + '</a></dd>' : '') + '</dl></div>';
     return h;
   }
 
   function settingsSheet() {
-    var hub = S.demo ? 'https://your-hub.pages.dev' : location.origin;
+    var hub = S.demo ? 'https://your-hub.workers.dev' : location.origin;
     var mine = S.settings.categories || [];
     var st = (S.raw && S.raw.status) || {};
     var col = st.collector, gm = st.gmail;
     var h = '<div class="sheet-head"><h3>Settings</h3><button class="iconbtn" data-action="close" aria-label="Close">' + ICON.close + '</button></div>';
     h += '<div class="block" id="cats"><h4>Your categories</h4><p class="gist" style="margin:0 0 8px">For You leans toward these and ranks the rest lower. Leave all off to see everything equally.</p><div class="btnrow">' +
       E.CATEGORIES.filter(function (c) { return c.id !== 'general'; }).map(function (c) { return chip('pref-cat', c.id, c.label, mine.indexOf(c.id) >= 0); }).join('') + '</div></div>';
-
+    h += alertsBlock();
     h += '<div class="block"><h4>Your hub</h4>';
-    if (S.demo) h += '<p class="gist">This is the preview with sample deals. Once you launch your own hub, this screen connects to it.</p>';
-    else h += '<dl class="kv"><dt>Address</dt><dd class="mono">' + esc(hub) + '</dd><dt>Key</dt><dd class="mono">' + esc(S.key ? S.key.slice(0, 3) + '•••••' + S.key.slice(-3) : 'not set') + '</dd></dl>' +
+    if (S.demo) h += '<p class="gist">This is the preview with sample deals. Your launched app connects to your own hub here.</p>';
+    else h += '<dl class="kv"><dt>Address</dt><dd class="mono">' + esc(hub) + '</dd><dt>Key</dt><dd class="mono">' + esc(S.key ? S.key.slice(0, 3) + '•••••' + S.key.slice(-3) : 'not set') + '</dd><dt>Version</dt><dd>' + esc(E.VERSION) + (S.raw && S.raw.version ? ' (hub ' + esc(S.raw.version) + ')' : '') + '</dd></dl>' +
       '<div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" data-action="copy" data-val="' + esc(S.key) + '">' + ICON.copy + ' Copy key</button><button class="btn ghost sm" data-action="forget">Use a different key</button></div>';
     h += '</div>';
-
     var addonUrl = hub + '/install/deal-stack.user.js';
-    h += '<div class="block"><h4>Safari add-on</h4><p class="gist" style="margin:0 0 8px">Tests codes at checkout, shows the best way to pay on any store, and saves your Capital One, Citi and Costco offers.</p><ol class="steps">' +
+    h += '<div class="block"><h4>Safari add-on</h4><p class="gist" style="margin:0 0 8px">Tests codes at checkout, shows the best way to pay on any store, saves your Capital One, Citi and Costco offers, and saves deals from store pages the collector can\'t read.</p><ol class="steps">' +
       '<li><span>Install the free <b>Userscripts</b> app from the App Store, open it once, then turn it on in Settings, Apps, Safari, Extensions, and allow it on all websites.</span></li>' +
       '<li><span>Open this link in Safari: <span class="mono">' + esc(addonUrl) + '</span></span></li>' +
-      '<li><span>Tap the puzzle-piece (or aA) button in Safari\'s address bar, choose Userscripts, and tap Install.</span></li>' +
-      '<li><span>The first time it runs it asks for your key. Copy it from the Your hub section above.</span></li></ol>' +
+      '<li><span>Tap the puzzle-piece (or aA) button in Safari\'s address bar, choose Userscripts, and tap Install. If you installed it before, this updates it.</span></li>' +
+      '<li><span>Open your Deal Stack address in Safari once so the add-on picks up your key.</span></li></ol>' +
       (S.demo ? '' : '<div class="btnrow" style="margin-top:10px"><a class="btn ghost sm" href="' + esc(addonUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Open add-on link</a><button class="btn ghost sm" data-action="copy" data-val="' + esc(addonUrl) + '">' + ICON.copy + ' Copy link</button></div>') + '</div>';
-
     var gmUrl = hub + '/install/gmail-scanner.gs';
-    h += '<div class="block"><h4>Gmail scanner</h4><p class="gist" style="margin:0 0 8px">Reads your promotions and card-offer emails every 6 hours and adds the codes here. It runs in your own Google account.</p>' +
-      (gm ? '<p class="gist">Last run ' + esc(E.agoText(E.hoursSince(gm.runAt, new Date()))) + ': ' + (gm.deals || 0) + ' deals from ' + (gm.messages || 0) + ' emails.</p>' : '<p class="gist">Not set up yet. The launch steps cover it.</p>') +
+    h += '<div class="block"><h4>Gmail scanner</h4><p class="gist" style="margin:0 0 8px">Reads your promotions and card-offer emails every 6 hours and adds the codes here, with the fine print from the bottom of each email. It runs in your own Google account.</p>' +
+      (gm ? '<p class="gist">Last run ' + esc(E.agoText(E.hoursSince(gm.runAt, new Date()))) + ': ' + (gm.deals || 0) + ' deals from ' + (gm.messages || 0) + ' emails.</p>' : '<p class="gist">Not set up yet.</p>') +
       (S.demo ? '' : '<div class="btnrow"><a class="btn ghost sm" href="' + esc(gmUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Open the script</a><button class="btn ghost sm" data-action="copy" data-val="' + esc(gmUrl) + '">' + ICON.copy + ' Copy link</button></div>') + '</div>';
-
     h += '<div class="block"><h4>Sources</h4>';
     if (col) {
       var details = col.details || [];
       var blocked = details.filter(function (d) { return !d.ok; });
-      h += '<p class="gist" style="margin:0 0 8px">Last collected ' + esc(E.agoText(E.hoursSince(col.runAt, new Date()))) + '. Reached ' + col.reached + ' of ' + col.sources + ' sources and found ' + col.deals + ' deals. Stores that block automated visits are skipped, never forced.</p>';
-      if (blocked.length) h += '<details><summary>' + blocked.length + ' skipped this run</summary><div class="src-list" style="margin-top:6px">' + blocked.slice(0, 120).map(function (d) { return '<div><i></i><span>' + esc(d.name) + '<small>' + esc(d.note) + '</small></span></div>'; }).join('') + '</div></details>';
+      h += '<p class="gist" style="margin:0 0 8px">Last collected ' + esc(E.agoText(E.hoursSince(col.runAt, new Date()))) + '. Reached ' + col.reached + ' of ' + col.sources + ' sources and kept ' + col.deals + ' deals that say what they apply to. Stores that block automated visits are skipped, never forced.</p>';
+      if (blocked.length) h += '<details><summary>' + blocked.length + ' skipped this run</summary><div class="src-list" style="margin-top:6px">' + blocked.slice(0, 150).map(function (d) { return '<div><i></i><span>' + esc(d.name) + '<small>' + esc(d.note) + '</small></span></div>'; }).join('') + '</div></details>';
       var okList = details.filter(function (d) { return d.ok; });
-      if (okList.length) h += '<details style="margin-top:8px"><summary>' + okList.length + ' reached</summary><div class="src-list" style="margin-top:6px">' + okList.slice(0, 200).map(function (d) { return '<div><i class="ok"></i><span>' + esc(d.name) + '<small>' + esc(d.note) + '</small></span></div>'; }).join('') + '</div></details>';
+      if (okList.length) h += '<details style="margin-top:8px"><summary>' + okList.length + ' reached</summary><div class="src-list" style="margin-top:6px">' + okList.slice(0, 250).map(function (d) { return '<div><i class="ok"></i><span>' + esc(d.name) + '<small>' + esc(d.note) + '</small></span></div>'; }).join('') + '</div></details>';
     } else h += '<p class="gist">The collector hasn\'t reported yet. Run it from the Actions tab on GitHub.</p>';
     h += '</div>';
     h += '<p class="gist" style="margin-top:18px">Deal Stack ' + esc(E.VERSION) + '. Card rewards are a best guess from each card\'s published categories; the card company decides what counts.</p>';
     return h;
+  }
+
+  /* ---------------- alerts ---------------- */
+  function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  function standalone() { try { return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } }
+  function registerWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+      if (!reg.pushManager) return;
+      return reg.pushManager.getSubscription().then(function (sub) { S.push.state = sub ? 'on' : 'off'; });
+    }).catch(function () { S.push.state = 'unavailable'; });
+  }
+  function alertsBlock() {
+    var a = S.settings.alerts;
+    var h = '<div class="block"><h4>Alerts</h4><p class="gist" style="margin:0 0 8px">Your phone gets a notification when something on My List goes on sale, a new code shows up at one of your starred stores, or a saved card offer is about to expire. Checked every 6 hours.</p>';
+    if (S.demo) h += '<p class="gist">Alerts work in your launched app.</p>';
+    else if (!pushSupported() || !standalone()) h += '<div class="banner">On iPhone, alerts need the app on your Home Screen: in Safari tap Share, then Add to Home Screen, then open Deal Stack from that icon and come back here.</div>';
+    else if (S.push.state === 'on') h += '<p class="gist"><b>Alerts are on</b> for this phone.</p><div class="btnrow"><button class="btn ghost sm" data-action="alerts-test">Send a test alert</button><button class="btn ghost sm" data-action="alerts-off">Turn off</button></div>';
+    else h += '<button class="btn" data-action="alerts-on">Turn on alerts</button>';
+    h += '<div class="toggles">' + [['list', 'Deals on My List'], ['favorites', 'New codes at your starred stores'], ['expiring', 'Card offers ending within 3 days']].map(function (t) {
+      return '<label class="tog"><span>' + esc(t[1]) + '</span><span class="switch"><input type="checkbox" data-change="alert-pref" data-key="' + t[0] + '"' + (a[t[0]] !== false ? ' checked' : '') + '><span></span></span></label>';
+    }).join('') + '</div></div>';
+    return h;
+  }
+  function b64ToBytes(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function alertsOn() {
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== 'granted') { toast('Alerts are blocked. Allow them in iPhone Settings, Notifications, Deal Stack.'); return; }
+      return navigator.serviceWorker.register('/sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
+        return api('/api/push/key').then(function (k) {
+          if (!k.ok) throw new Error(k.error || 'no key');
+          return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(k.key) });
+        });
+      }).then(function (sub) {
+        return api('/api/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON() } });
+      }).then(function (j) {
+        if (!j.ok) throw new Error(j.error);
+        S.push.state = 'on'; paintSheet(); toast('Alerts are on');
+        return api('/api/push/test', { method: 'POST' });
+      });
+    }).catch(function (e) { toast("Couldn't turn on alerts: " + (e && e.message ? e.message : 'unknown problem')); });
+  }
+  function alertsOff() {
+    navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+      if (!sub) return;
+      var ep = sub.endpoint;
+      return sub.unsubscribe().then(function () { return api('/api/push/unsubscribe', { method: 'POST', body: { endpoint: ep } }); });
+    }).then(function () { S.push.state = 'off'; paintSheet(); toast('Alerts are off'); });
   }
 
   /* ---------------- painting ---------------- */
@@ -1018,7 +1516,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   }
   function paintTopbar() { var t = $('#topbar'); if (t) t.innerHTML = topbarHtml(); }
 
-  var VIEWS = { foryou: viewForYou, browse: viewBrowse, way: viewWay, list: viewList, cards: viewCards };
+  var VIEWS = { foryou: viewForYou, codes: viewCodes, stores: viewStores, way: viewWay, list: viewList, cards: viewCards };
 
   function render() {
     var app = $('#app');
@@ -1026,7 +1524,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     if (S.mode === 'loading') h += '<div class="loading">Loading your deals…</div>';
     else if (S.mode === 'connect') h += connectView();
     else {
-      if (S.demo) h += '<div class="banner"><b>Preview with sample deals.</b> Codes are made up. Your launched app fills this with real deals from the stores, your Gmail and your card accounts.</div>';
+      if (S.demo) h += '<div class="banner"><b>Preview with sample deals.</b> Codes and prices are made up. Your launched app fills this with real deals from the stores, your Gmail and your card accounts.</div>';
       h += '<main id="view">' + VIEWS[S.tab]() + '</main>';
     }
     app.innerHTML = h;
@@ -1049,7 +1547,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     var t = $('#toast');
     t.textContent = msg; t.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 2800);
   }
 
   function copyText(text) {
@@ -1059,41 +1557,57 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       document.body.appendChild(ta); ta.select();
       var ok = false; try { ok = document.execCommand('copy'); } catch (e) { }
       document.body.removeChild(ta);
-      toast(ok ? 'Copied' : 'Press and hold to copy: ' + text);
+      toast(ok ? 'Copied ' + text : 'Press and hold to copy: ' + text);
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Copied'); }, fallback);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Copied ' + text); }, fallback);
     else fallback();
   }
 
   /* ---------------- actions ---------------- */
   function setTab(t) {
-    S.tab = t; store.set('tab', t); render();
+    S.tab = t; store.set('tab', t);
+    if (t !== 'stores') S.stores.view = null;
+    render();
     window.scrollTo(0, 0);
   }
+  function openStore(dom) {
+    closeSheet();
+    S.tab = 'stores'; S.stores.view = dom; S.stores.prodLimit = 24; store.set('tab', 'stores');
+    render(); window.scrollTo(0, 0);
+  }
+  function repaintView() { var v = $('#view'); if (v) v.innerHTML = VIEWS[S.tab](); }
 
   function markDeal(id, ok) {
     var x = S.byId[id];
     if (!x) return;
-    var t = { deal_id: id, ok: ok ? 1 : 0, saved: 0, at: new Date().toISOString(), via: 'you' };
-    S.raw.tests = (S.raw.tests || []).concat([t]);
+    S.raw.tests = (S.raw.tests || []).concat([{ deal_id: id, ok: ok ? 1 : 0, saved: 0, at: new Date().toISOString(), via: 'you' }]);
     derive(); paintSheet(); repaintView();
-    toast(ok ? 'Marked as working' : "Marked as not working");
+    toast(ok ? 'Marked as working' : 'Marked as not working');
     if (S.live) api('/api/tests', { method: 'POST', body: { results: [{ dealId: id, domain: x.rec.d.domain, code: x.rec.d.code, ok: !!ok, saved: 0, via: 'you' }] } });
   }
-
   function hideDeal(id) {
     S.raw.deals = S.raw.deals.filter(function (r) { return r.id !== id; });
     derive(); closeSheet(); repaintView(); toast('Hidden');
     if (S.live) api('/api/hide', { method: 'POST', body: { id: id } });
   }
-
-  function repaintView() { var v = $('#view'); if (v) v.innerHTML = VIEWS[S.tab](); }
-
+  function toggleList(arr, val) { var i = arr.indexOf(val); if (i >= 0) arr.splice(i, 1); else arr.push(val); return i < 0; }
   function goWay(domain) {
     S.way.domain = domain; S.way.q = ''; store.set('wayDomain', domain);
     closeSheet();
     if (S.tab !== 'way') { setTab('way'); return; }
     repaintView(); window.scrollTo(0, 0);
+  }
+  function addStore(raw) {
+    var v = String(raw || '').trim().toLowerCase();
+    if (!v) return;
+    var b = E.brandByName(v);
+    var dom = b ? b.domain : E.storeKey(/^https?:/.test(v) ? v : 'https://' + v.replace(/^www\./, ''));
+    if (!dom || dom.indexOf('.') < 0) { toast('Enter the store\'s website, like brooklinen.com'); return; }
+    if (!b && !S.settings.extraStores.some(function (x) { return x.domain === dom; })) S.settings.extraStores.push({ domain: dom, name: dom.split('.')[0].replace(/^./, function (c) { return c.toUpperCase(); }) });
+    if (!isFav(dom)) S.settings.favorites.push(dom);
+    var hi = S.settings.hidden.indexOf(dom); if (hi >= 0) S.settings.hidden.splice(hi, 1);
+    saveSettings(); repaintView();
+    toast((b ? b.name : dom) + ' added to your stores');
   }
 
   function runOcr(file) {
@@ -1155,6 +1669,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     }
     var a = el.getAttribute('data-action');
     var val = el.getAttribute('data-val');
+    var dom = el.getAttribute('data-domain');
     switch (a) {
       case 'tab': closeSheet(); setTab(el.getAttribute('data-tab')); break;
       case 'deal': openSheet('deal', el.getAttribute('data-id')); break;
@@ -1167,36 +1682,43 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
         break;
       case 'refresh': if (S.live) load(true); break;
       case 'fy-cat': S.fy.cat = val; repaintView(); break;
-      case 'br-cat':
-        if (val === 'all') S.browse.cats = [];
-        else { var i = S.browse.cats.indexOf(val); if (i >= 0) S.browse.cats.splice(i, 1); else S.browse.cats.push(val); }
-        S.browse.limit = 40; repaintView(); break;
-      case 'more': S.browse.limit += 40; $('#bresults').innerHTML = browseResults(); break;
-      case 'way': goWay(el.getAttribute('data-domain')); break;
+      case 'cd-filter': S.codes.filter = val; S.codes.limit = 30; repaintView(); break;
+      case 'cd-more': S.codes.limit += 30; $('#cresults').innerHTML = codeResults(); break;
+      case 'st-filter': S.stores.filter = val; repaintView(); break;
+      case 'store': openStore(dom); break;
+      case 'back': S.stores.view = null; repaintView(); window.scrollTo(0, 0); break;
+      case 'star': {
+        var added = toggleList(S.settings.favorites, dom);
+        saveSettings();
+        el.classList.toggle('on', added); el.setAttribute('aria-pressed', added);
+        toast(added ? storeOf(dom).name + ' added to your stores' : storeOf(dom).name + ' removed from your stores');
+        if (S.tab === 'foryou') repaintView();
+        break;
+      }
+      case 'hide-store': if (!isHidden(dom)) S.settings.hidden.push(dom); var fi = S.settings.favorites.indexOf(dom); if (fi >= 0) S.settings.favorites.splice(fi, 1); saveSettings(); S.stores.view = null; repaintView(); toast(storeOf(dom).name + ' hidden. Show it again at the bottom of Stores.'); break;
+      case 'unhide': toggleList(S.settings.hidden, dom); saveSettings(); repaintView(); break;
+      case 'prod-more': S.stores.prodLimit += 24; repaintView(); break;
+      case 'way': {
+        var wa = +el.getAttribute('data-amount');
+        if (wa > 0) { S.way.amount = Math.round(wa * 100) / 100; store.set('wayAmount', S.way.amount); }
+        goWay(dom); break;
+      }
       case 'mark': markDeal(el.getAttribute('data-id'), el.getAttribute('data-ok') === '1'); break;
       case 'hide': hideDeal(el.getAttribute('data-id')); break;
-      case 'pref-cat': {
-        var cs = S.settings.categories; var k = cs.indexOf(val);
-        if (k >= 0) cs.splice(k, 1); else cs.push(val);
-        saveSettings(); paintSheet(); repaintView(); break;
-      }
+      case 'pref-cat': toggleList(S.settings.categories, val); saveSettings(); paintSheet(); repaintView(); break;
       case 'plan-cat': {
         var c = E.CAT_BY_ID[val];
         S.settings.plan.push({ text: c.label, type: 'category', cat: val });
         saveSettings(); repaintView(); toast('Added ' + c.label); break;
       }
       case 'list-open': { var n = +el.getAttribute('data-i'); S.listOpen[n] = !S.listOpen[n]; repaintView(); break; }
-      case 'list-del': {
-        var m = +el.getAttribute('data-i'); S.settings.plan.splice(m, 1); S.listOpen = {};
-        saveSettings(); repaintView(); break;
-      }
+      case 'list-del': { S.settings.plan.splice(+el.getAttribute('data-i'), 1); S.listOpen = {}; saveSettings(); repaintView(); break; }
       case 'stash-tier': S.settings.stash.tier = +val; saveSettings(); repaintView(); break;
-      case 'stash-brand': {
-        var br = S.settings.stash.brands; var j = br.indexOf(val);
-        if (j >= 0) br.splice(j, 1); else br.push(val);
-        saveSettings(); var sp = $('#stashpick'); if (sp) sp.innerHTML = stashChips(); break;
-      }
+      case 'stash-brand': toggleList(S.settings.stash.brands, val); saveSettings(); var sp = $('#stashpick'); if (sp) sp.innerHTML = stashChips(); break;
       case 'ocr-save': saveOcr(); break;
+      case 'alerts-on': alertsOn(); break;
+      case 'alerts-off': alertsOff(); break;
+      case 'alerts-test': api('/api/push/test', { method: 'POST' }).then(function (j) { toast(j.sent ? 'Test alert sent' : "Couldn't send. Turn alerts off and on again."); }); break;
       case 'forget': store.del('key'); store.del('cache'); S.key = ''; S.raw = null; S.mode = 'connect'; S.connectErr = ''; closeSheet(); render(); break;
     }
   });
@@ -1216,21 +1738,23 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       S.settings.plan.push({ text: q, type: 'text' });
       saveSettings(); repaintView(); toast('Added to your list');
     }
+    if (f === 'addstore') addStore($('#addstore').value);
   });
 
   document.addEventListener('input', function (ev) {
     var t = ev.target;
-    if (t.id === 'bq') { S.browse.q = t.value; S.browse.limit = 40; $('#bresults').innerHTML = browseResults(); }
+    if (t.id === 'cq') { S.codes.q = t.value; S.codes.limit = 30; $('#cresults').innerHTML = codeResults(); }
+    if (t.id === 'sq') { S.stores.q = t.value; $('#sresults').innerHTML = storeResults(); }
     if (t.id === 'wayq') {
       S.way.q = t.value;
       var sg = $('#waysug'); var list = suggestions(t.value);
-      sg.innerHTML = list.map(function (s) { return '<button data-action="way" data-domain="' + esc(s.domain) + '"><span>' + esc(s.name) + '</span><small>' + (s.n ? s.n + ' deals' : s.pseudo ? 'card advice' : 'no coupons now') + '</small></button>'; }).join('');
+      sg.innerHTML = list.map(function (s) { return '<button data-action="way" data-domain="' + esc(s.domain) + '"><span>' + esc(s.name) + '</span><small>' + (s.n ? s.n + ' deals' : s.pseudo ? 'card advice' : 'no deals now') + '</small></button>'; }).join('');
       sg.hidden = !list.length;
     }
     if (t.id === 'wayamt') {
       S.way.amount = Math.max(1, Number(t.value) || 0) || 100; store.set('wayAmount', S.way.amount);
-      var wp = $('#wayplan'); var st = S.way.domain ? E.storeFor(S.way.domain, (S.byDomain[S.way.domain] || []).map(function (x) { return x.rec; })) : null;
-      if (wp && st && Number(t.value) > 0) wp.innerHTML = planBlock(st);
+      var wp = $('#wayplan');
+      if (wp && S.way.domain && Number(t.value) > 0) wp.innerHTML = planBlock(storeOf(S.way.domain));
     }
     if (t.id === 'stashq') { S.stashQ = t.value; var sp = $('#stashpick'); if (sp) sp.innerHTML = stashChips(); }
     var ch = t.getAttribute('data-change');
@@ -1243,9 +1767,10 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 
   document.addEventListener('change', function (ev) {
     var t = ev.target;
-    if (t.id === 'bstatus') { S.browse.status = t.value; $('#bresults').innerHTML = browseResults(); }
-    if (t.id === 'btype') { S.browse.type = t.value; $('#bresults').innerHTML = browseResults(); }
-    if (t.id === 'bsort') { S.browse.sort = t.value; $('#bresults').innerHTML = browseResults(); }
+    if (t.id === 'ccat') { S.codes.cat = t.value; $('#cresults').innerHTML = codeResults(); }
+    if (t.id === 'csort') { S.codes.sort = t.value; $('#cresults').innerHTML = codeResults(); }
+    if (t.id === 'scat') { S.stores.cat = t.value; $('#sresults').innerHTML = storeResults(); }
+    if (t.id === 'psort') { S.stores.prodSort = t.value; repaintView(); }
     if (t.id === 'ocrprog') S.ocrProgram = t.value;
     if (t.id === 'ocrfile' && t.files && t.files[0]) runOcr(t.files[0]);
     var ch = t.getAttribute('data-change');
@@ -1254,6 +1779,7 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
       if (t.checked && i < 0) cs.push(id); if (!t.checked && i >= 0) cs.splice(i, 1);
       saveSettings();
     }
+    if (ch === 'alert-pref') { S.settings.alerts[t.getAttribute('data-key')] = t.checked; saveSettings(); }
     if (ch === 'ocr-inc') { S.ocr.rows[+t.getAttribute('data-i')].include = t.checked; var btn = $('[data-action="ocr-save"]'); if (btn) btn.textContent = 'Save ' + S.ocr.rows.filter(function (r) { return r.include; }).length + ' offers'; }
   });
 
@@ -1263,75 +1789,65 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
   function sampleData(now) {
     function md(n) { var d = new Date(now.getTime() + n * 86400000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); }
     function ago(h) { return new Date(now.getTime() - h * 3600000).toISOString(); }
-    var rows = [
-      // From stores' own sites
-      { domain: 'nike.com', title: 'Extra 25% off sale styles with code SAMPLE25', code: 'SAMPLE25', terms: 'Nike Members only. Excludes select styles. Ends ' + md(8) + '.', sourceType: 'official', h: 30 },
-      { domain: 'target.com', title: 'Save $20 when you spend $100 on home items', terms: 'Target Circle members. In store and online. Prices as marked. Ends ' + md(6) + '.', sourceType: 'official', kind: 'sale', h: 5 },
-      { domain: 'bestbuy.com', title: 'Up to 40% off select laptops', terms: 'Prices as marked. While supplies last. Ends ' + md(5) + '.', sourceType: 'official', kind: 'sale', h: 4 },
-      { domain: 'oldnavy.gap.com', title: '40% off everything', terms: 'Prices as marked online and in stores. Today only.', sourceType: 'official', kind: 'sale', h: 3 },
-      { domain: 'ulta.com', title: '$10 off $40 with code SAMPLE10', code: 'SAMPLE10', terms: 'Valid online only. One use per customer. Exclusions apply. Ends ' + md(13) + '.', sourceType: 'official', h: 26 },
-      { domain: 'lowes.com', title: 'Save 20% on outdoor power equipment', terms: 'Select items. Through ' + md(10) + '.', sourceType: 'official', kind: 'sale', h: 8 },
-      { domain: 'sephora.com', title: '15% off your first order with code SAMPLENEW', code: 'SAMPLENEW', terms: 'New customers only. Online only.', sourceType: 'official', h: 50 },
-      { domain: 'chewy.com', title: 'Get $20 off your first order of $49+ with code SAMPLEPET', code: 'SAMPLEPET', terms: 'New customers only. Excludes gift cards. Valid thru ' + md(22) + '.', sourceType: 'official', h: 12 },
-      { domain: 'doordash.com', title: '50% off your first order, up to $15, with code SAMPLEDASH', code: 'SAMPLEDASH', terms: 'New customers only. Minimum subtotal $20. Expires ' + md(19) + '.', sourceType: 'official', h: 9 },
-      { domain: 'lululemon.com', title: 'We Made Too Much: up to 50% off', terms: 'Prices as marked. Final sale.', sourceType: 'official', kind: 'sale', h: 20 },
-      { domain: 'jcrew.com', title: '40% off full-price styles with code SAMPLEFALL', code: 'SAMPLEFALL', terms: 'Online only. Excludes sale items. Ends ' + md(2) + '.', sourceType: 'official', h: 30 },
-      { domain: 'expedia.com', title: 'Members save 10% or more on select hotels', terms: 'Must be signed in. Select hotels only.', sourceType: 'official', kind: 'sale', h: 14 },
-      { domain: 'homedepot.com', title: 'Up to 35% off select power tools', terms: 'Select items. Ends ' + md(3) + '.', sourceType: 'official', kind: 'sale', h: 7 },
-      { domain: 'starbucks.com', title: 'Half off a handcrafted drink this Thursday', terms: 'Starbucks Rewards members. Order in the app. Ends Thursday. One per member.', sourceType: 'official', kind: 'sale', h: 6 },
-      // From your Gmail
-      { domain: 'gap.com', title: 'Your code SAMPLEGAP is here: 30% off', code: 'SAMPLEGAP', terms: 'Valid through ' + md(7) + '. Online and in stores. Excludes sale items.', sourceType: 'email', h: 40 },
-      { domain: 'macys.com', title: 'Extra 20% off with code SAMPLESTAR', code: 'SAMPLESTAR', terms: 'Valid ' + md(-2) + ' - ' + md(8) + '. Exclusions apply. Not valid on Deals of the Day.', sourceType: 'email', h: 60 },
-      { domain: 'wayfair.com', title: '$25 off your order of $150+ with code SAMPLEHOME', code: 'SAMPLEHOME', terms: 'Expires ' + md(4) + '. One use per customer.', sourceType: 'email', h: 22 },
-      { domain: 'ubereats.com', title: '$10 off your next order of $25+ with code SAMPLEEATS', code: 'SAMPLEEATS', terms: 'Ends ' + md(3) + '. Delivery orders only.', sourceType: 'email', h: 18 },
-      // Posted by shoppers
-      { domain: 'amazon.com', title: 'Apple AirPods Pro 2 $169 at Amazon', terms: 'Lowest price in a while. Sold and shipped by Amazon.', sourceType: 'community', sourceName: 'Slickdeals', price: 169, kind: 'sale', h: 20, url: 'https://slickdeals.net/' },
-      { domain: 'walmart.com', title: 'Ninja 5qt Air Fryer $59 at Walmart', terms: 'Free shipping with Walmart+ or on $35+.', sourceType: 'community', sourceName: 'Slickdeals', price: 59, kind: 'sale', h: 6, url: 'https://slickdeals.net/' },
-      { domain: 'bestbuy.com', title: 'Samsung 65" QLED 4K TV $549.99 at Best Buy', terms: 'In stock for delivery.', sourceType: 'community', sourceName: 'Slickdeals', price: 549.99, kind: 'sale', h: 44, url: 'https://slickdeals.net/' },
-      { domain: 'rei.com', title: 'Hydro Flask 32oz Wide Mouth $25 + Free Shipping @ REI', terms: 'Several colors.', sourceType: 'community', sourceName: 'Slickdeals', price: 25, kind: 'sale', h: 10, url: 'https://slickdeals.net/' },
-      { domain: 'homedepot.com', title: 'DeWalt 20V Drill Kit $99 w/ code SAMPLEDRILL at Home Depot', code: 'SAMPLEDRILL', terms: 'Online only.', sourceType: 'community', sourceName: 'Slickdeals', price: 99, h: 30, url: 'https://slickdeals.net/' },
-      { domain: 'kohls.com', title: 'Take 15% off with code SAMPLEKOHL', code: 'SAMPLEKOHL', terms: 'Ends ' + md(5) + '. Excludes select brands.', sourceType: 'official', h: 4 },
-      { domain: 'steampowered.com', title: 'Steam Autumn Sale: up to 90% off games', terms: 'Prices as marked. Ends ' + md(9) + '.', sourceType: 'community', sourceName: 'Slickdeals', kind: 'sale', h: 16, url: 'https://slickdeals.net/' },
-      // From your card accounts
-      { domain: 'nike.com', kind: 'cardoffer', card: 'capitalone', title: '10% back', terms: 'Online only. Max $30 back. Expires ' + md(18) + '.', sourceType: 'card', sourceName: 'Capital One Offers', h: 30 },
-      { domain: 'bestbuy.com', kind: 'cardoffer', card: 'capitalone', title: '5% back', terms: 'Online purchases. Expires ' + md(20) + '.', sourceType: 'card', sourceName: 'Capital One Offers', h: 30 },
-      { domain: 'chipotle.com', kind: 'cardoffer', card: 'venmo', title: '10% back', terms: 'Next purchase only. Expires ' + md(8) + '.', sourceType: 'card', sourceName: 'Venmo offers', h: 48 },
-      { domain: 'doordash.com', kind: 'cardoffer', card: 'venmo', title: '15% back', terms: 'Max $10 back. Expires ' + md(12) + '.', sourceType: 'card', sourceName: 'Venmo offers', h: 48 },
-      { domain: 'target.com', kind: 'cardoffer', card: 'venmo', title: '3% back', terms: 'Online and in store.', sourceType: 'card', sourceName: 'Venmo offers', h: 48 },
-      { domain: 'wayfair.com', kind: 'cardoffer', card: 'citi', title: '$25 back when you spend $250', terms: 'One time. Expires ' + md(25) + '.', sourceType: 'card', sourceName: 'Citi offers', h: 72 },
-      { domain: 'nike.com', kind: 'portal', portal: 'c1shopping', title: '8% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
-      { domain: 'macys.com', kind: 'portal', portal: 'c1shopping', title: '6% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
-      { domain: 'sephora.com', kind: 'portal', portal: 'c1shopping', title: '4% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
-      { domain: 'expedia.com', kind: 'portal', portal: 'c1shopping', title: 'Up to 6% back', terms: 'Hotels only.', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
-      // Costco member savings
-      { domain: 'costco.com', kind: 'sale', title: 'Kirkland Signature Paper Towels: $4 off', terms: 'Limit 2. In-warehouse and online. Valid ' + md(-11) + ' - ' + md(14), sourceType: 'costco', sourceName: 'Costco member savings', cat: 'grocery', h: 10 },
-      { domain: 'costco.com', kind: 'sale', title: 'Dyson V8 Cordless Vacuum: $100 off', terms: 'In-warehouse and online. Valid ' + md(-11) + ' - ' + md(14), sourceType: 'costco', sourceName: 'Costco member savings', cat: 'home', h: 10 },
-      { domain: 'costco.com', kind: 'sale', title: 'Apple iPad Air 11-inch: $100 off', terms: 'Online only. Valid ' + md(-11) + ' - ' + md(14), sourceType: 'costco', sourceName: 'Costco member savings', cat: 'electronics', h: 10 }
-    ];
+    function dayAgo(n) { return new Date(now.getTime() - n * 86400000).toISOString().slice(0, 10); }
     var deals = [];
-    rows.forEach(function (r) {
-      var posted = ago(r.h);
-      var rec = E.makeRecord({
-        domain: r.domain, kind: r.kind || (r.code ? 'code' : 'sale'), title: r.title, code: r.code, terms: r.terms,
-        sourceType: r.sourceType, sourceName: r.sourceName, card: r.card, portal: r.portal, price: r.price, cat: r.cat,
-        sourceUrl: r.url || null, posted: posted
-      }, now);
-      rec.data.sample = true;
-      deals.push({ id: rec.id, d: rec.data, fs: posted, ls: ago(Math.min(r.h, 3)) });
-    });
+    var pstats = {};
+    function add(raw, h, ls) {
+      var rec = raw.product && !raw.kind ? null : null;
+      var r = raw.kind === 'product' ? E.productRecord(raw.product, { domain: raw.domain, brand: raw.brand, url: raw.pageUrl, pageLabel: raw.section, cat: raw.cat }, now) : E.makeRecord(raw, now);
+      r.data.sample = true;
+      deals.push({ id: r.id, d: r.data, fs: ago(h), ls: ago(ls == null ? Math.min(h, 3) : ls) });
+      return r.id;
+    }
+    // Store promotions and codes, each with what it applies to and its fine print
+    add({ domain: 'logitech.com', title: 'Spend more, save more: $25 off $150, $50 off $250, $100 off $450', headline: 'Monster Deals', terms: '** SPECIAL OFFER: Buy More Save More discount applies to qualifying orders before shipping, handling, and taxes. The discount is applied at the order level in the cart. This offer is valid through ' + md(19) + ', or until supplies last. Exclusions include B2B video collaboration products, spare parts, MX Master 4, products labeled as "New", and Gift with Purchase products sold as standalone items. This offer cannot be combined with other promotions.', termsUrl: 'https://www.logitech.com/en-us/shop/deals#terms', scope: { type: 'order', note: 'Workspace upgrades' }, url: 'https://www.logitech.com/en-us/shop/deals', pageUrl: 'https://www.logitech.com/en-us', sourceType: 'official', sourceName: 'Logitech website' }, 20);
+    add({ domain: 'gap.com', title: 'Friends & Family: 40% off everything, includes new arrivals', terms: 'Online & in stores. Excludes collaborations. Ends ' + md(8) + '.', termsUrl: 'https://www.gap.com/', scope: { type: 'order' }, url: 'https://www.gap.com/', pageUrl: 'https://www.gap.com/', sourceType: 'official' }, 30);
+    add({ domain: 'gap.com', title: 'Extra 10% off for Cardmembers with code SAMPLEFAM', code: 'SAMPLEFAM', terms: 'Gap Good Rewards Cardmembers only. Excludes collaborations. Ends ' + md(8) + '.', termsUrl: 'https://www.gap.com/', scope: { type: 'order' }, url: 'https://www.gap.com/', sourceType: 'official' }, 30);
+    add({ domain: 'footlocker.com', title: 'Get 20% off with code SAMPLE20, no minimum', code: 'SAMPLE20', terms: 'Buy more, save more! Exclusions apply. Not valid on Nike or Jordan. Ends ' + md(5) + '.', scope: { type: 'order' }, url: 'https://www.footlocker.com/', pageUrl: 'https://www.footlocker.com/', sourceType: 'official' }, 26);
+    add({ domain: 'footlocker.com', title: '25% off $150 or more with code SAMPLE25', code: 'SAMPLE25', terms: 'Exclusions apply. Not valid on Nike or Jordan. Ends ' + md(5) + '.', scope: { type: 'order', min: 150 }, url: 'https://www.footlocker.com/', sourceType: 'official' }, 26);
+    add({ domain: 'underarmour.com', title: 'Up to 40% off UA Outlet with code SAMPLEWKND', code: 'SAMPLEWKND', headline: 'The Long Weekend Event', terms: 'Valid on UA Outlet styles only. Prices as marked. Ends ' + md(2) + '.', scope: { type: 'category', label: 'UA Outlet', items: [{ n: "Men's UA Tech 2.0 Short Sleeve", u: 'https://www.underarmour.com/', p: 15.97, w: 30 }, { n: "Women's UA Rival Fleece Hoodie", u: 'https://www.underarmour.com/', p: 33.97, w: 60 }] }, url: 'https://www.underarmour.com/en-us/c/outlet/', sourceType: 'official' }, 8);
+    add({ domain: 'underarmour.com', title: '25% off select men\'s styles', terms: '', scope: { type: 'category', label: "Select men's styles" }, url: 'https://www.underarmour.com/en-us/c/sale-featured-new/mens/', sourceType: 'official' }, 8);
+    add({ domain: 'walgreens.com', title: '20% off $50+ eligible items sitewide with code SAMPLEOCT', code: 'SAMPLEOCT', terms: '*Exclusions apply. See Walgreens.com/OfferDetails. Excludes prescriptions, gift cards, alcohol, tobacco, and photo. Valid online only through ' + md(9) + '.', termsUrl: 'https://www.walgreens.com/offerdetails', scope: { type: 'order', min: 50 }, url: 'https://www.walgreens.com/', sourceType: 'official' }, 14);
+    add({ domain: 'walgreens.com', title: 'Buy 1 Get 1 free: select same-brand vitamins & supplements', terms: 'Mix and match select Nature Made, One A Day and Walgreens brand vitamins. Free item of equal or lesser value.', scope: { type: 'category', label: 'Select same-brand vitamins & supplements' }, url: 'https://www.walgreens.com/store/c/vitamins', sourceType: 'official' }, 14);
+    add({ domain: 'llbean.com', title: '10% off your purchase with code SAMPLELEAF', code: 'SAMPLELEAF', terms: 'Online and in stores through ' + md(1) + '. Offers can\'t be combined. Conditions and exclusions apply.', scope: { type: 'order' }, url: 'https://www.llbean.com/', sourceType: 'official' }, 4);
+    add({ domain: 'newegg.com', title: '$10 off with promo code SAMPLEPS5', code: 'SAMPLEPS5', terms: '', scope: { type: 'product', label: 'Sony PlayStation Store $100 Gift Card (Email Delivery) ($100 before the code)' }, url: 'https://www.newegg.com/', sourceType: 'official' }, 6);
+    add({ domain: 'dsw.com', title: 'Save on regular-price & clearance styles with code SAMPLECIDER', code: 'SAMPLECIDER', terms: '$15 OFF $49, $20 OFF $99, OR $60 OFF $199. Use offer code SAMPLECIDER at checkout to redeem online. Excludes gift cards and select brands.', termsUrl: 'https://www.dsw.com/promotions/sample', scope: { type: 'category', label: 'Regular-price & clearance styles' }, url: 'https://www.dsw.com/', sourceType: 'official' }, 10);
+    add({ domain: 'purple.com', title: '$300 off The Purple Mattress®', terms: '', scope: { type: 'category', label: 'The Purple Mattress®' }, url: 'https://purple.com/sale', sourceType: 'official' }, 12);
+    // From Gmail
+    add({ domain: 'macys.com', title: 'Extra 20% off with code SAMPLESTAR', code: 'SAMPLESTAR', terms: 'Valid ' + md(-2) + ' - ' + md(6) + '. Exclusions apply: not valid on Deals of the Day, Last Act, cosmetics or fragrances.', scope: { type: 'order' }, url: 'https://www.macys.com/', sourceType: 'email', sourceName: 'Email from Macy\'s' }, 50);
+    add({ domain: 'wayfair.com', title: '$25 off your order of $150+ with code SAMPLEHOME', code: 'SAMPLEHOME', terms: 'Expires ' + md(3) + '. One use per customer.', scope: { type: 'order', min: 150 }, url: 'https://www.wayfair.com/', sourceType: 'email', sourceName: 'Email from Wayfair' }, 22);
+    // Products on sale, with price history
+    var p1 = add({ kind: 'product', domain: 'logitech.com', brand: 'Logitech', section: 'Deals', pageUrl: 'https://www.logitech.com/en-us/shop/deals', cat: 'electronics', product: { name: 'MX Vertical (Advanced Ergonomic Mouse)', url: 'https://www.logitech.com/en-us/shop/p/mx-vertical', price: 79.99, was: 119.99 } }, 200);
+    pstats[p1] = { first_seen: dayAgo(30), price: 79.99, price_since: dayAgo(1), low: 79.99, low_at: dayAgo(1), high_reg: 119.99, days: 30 };
+    var p2 = add({ kind: 'product', domain: 'logitech.com', brand: 'Logitech', section: 'Deals', pageUrl: 'https://www.logitech.com/en-us/shop/deals', cat: 'electronics', product: { name: 'G305 LIGHTSPEED Wireless Gaming Mouse', url: 'https://www.logitech.com/en-us/shop/p/g305', price: 34.99, was: 59.99 } }, 400);
+    pstats[p2] = { first_seen: dayAgo(40), price: 34.99, price_since: dayAgo(40), low: 34.99, low_at: dayAgo(40), high_reg: 59.99, days: 40 };
+    var p3 = add({ kind: 'product', domain: 'steampowered.com', brand: 'Steam', section: 'Games', pageUrl: 'https://store.steampowered.com/', cat: 'entertainment', product: { name: 'Risk of Rain 2', url: 'https://store.steampowered.com/app/632360/', price: 8.24, was: 24.99, expires: null } }, 30);
+    pstats[p3] = { first_seen: dayAgo(12), price: 8.24, price_since: dayAgo(2), low: 8.24, low_at: dayAgo(2), high_reg: 24.99, days: 12 };
+    var p4 = add({ kind: 'product', domain: 'steampowered.com', brand: 'Steam', section: 'Games', pageUrl: 'https://store.steampowered.com/', cat: 'entertainment', product: { name: 'Halo: The Master Chief Collection', url: 'https://store.steampowered.com/sub/376282/', price: 9.99, was: 39.99 } }, 30);
+    pstats[p4] = { first_seen: dayAgo(2), price: 9.99, price_since: dayAgo(2), low: 9.99, low_at: dayAgo(2), high_reg: 39.99, days: 2 };
+    var p5 = add({ kind: 'product', domain: 'allbirds.com', brand: 'Allbirds', section: 'Sale', pageUrl: 'https://www.allbirds.com/products.json', cat: 'fashion', product: { name: "Women's Wool Runner-up Mizzle", url: 'https://www.allbirds.com/products/womens-wool-runner-up-mizzle', price: 60, was: 145 } }, 30);
+    pstats[p5] = { first_seen: dayAgo(25), price: 60, price_since: dayAgo(9), low: 55, low_at: dayAgo(14), high_reg: 145, days: 25 };
+    add({ kind: 'product', domain: 'walmart.com', brand: 'Walmart', section: null, pageUrl: 'https://slickdeals.net/', cat: 'home', product: { name: 'Ninja 5qt Air Fryer', url: 'https://slickdeals.net/', price: 59, was: 99.99 } }, 6);
+    // Card offers
+    add({ domain: 'gap.com', kind: 'cardoffer', card: 'capitalone', title: '10% back', terms: 'Online only. Max $30 back. Expires ' + md(18) + '.', sourceType: 'card', sourceName: 'Capital One Offers' }, 30);
+    add({ domain: 'footlocker.com', kind: 'portal', portal: 'c1shopping', title: '6% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping' }, 30);
+    add({ domain: 'chipotle.com', kind: 'cardoffer', card: 'venmo', title: '10% back', terms: 'Next purchase only. Expires ' + md(2) + '.', sourceType: 'card', sourceName: 'Venmo offers' }, 48);
+    add({ domain: 'wayfair.com', kind: 'cardoffer', card: 'citi', title: '$25 back when you spend $250', terms: 'One time. Expires ' + md(25) + '.', sourceType: 'card', sourceName: 'Citi offers' }, 72);
     function idOf(dom, code) { return dom + '|C:' + code; }
     return {
-      ok: true, now: now.toISOString(), deals: deals,
-      sight: (function () { var s = {}; s[idOf('kohls.com', 'SAMPLEKOHL')] = 2; s[idOf('macys.com', 'SAMPLESTAR')] = 2; return s; })(),
+      ok: true, now: now.toISOString(), deals: deals, pstats: pstats,
+      sight: (function () { var s = {}; s[idOf('footlocker.com', 'SAMPLE20')] = 2; return s; })(),
       tests: [
-        { deal_id: idOf('nike.com', 'SAMPLE25'), ok: 1, saved: 18.4, at: ago(40), via: 'addon' },
-        { deal_id: idOf('ulta.com', 'SAMPLE10'), ok: 1, saved: 10, at: ago(20), via: 'addon' },
-        { deal_id: idOf('gap.com', 'SAMPLEGAP'), ok: 1, saved: 21.9, at: ago(30), via: 'you' },
-        { deal_id: idOf('jcrew.com', 'SAMPLEFALL'), ok: 0, saved: 0, at: ago(2), via: 'addon' }
+        { deal_id: idOf('footlocker.com', 'SAMPLE20'), ok: 1, saved: 24, at: ago(20), via: 'addon' },
+        { deal_id: idOf('llbean.com', 'SAMPLELEAF'), ok: 1, saved: 11.5, at: ago(10), via: 'you' }
       ],
-      settings: { cards: ['quicksilver', 'savor', 'venturex', 'costco', 'venmo'], categories: ['fashion', 'electronics', 'home'], stash: { tier: 2, brands: ['chipotle.com', 'target.com'] }, plan: [{ text: 'running shoes', type: 'text' }, { text: 'Costco', type: 'text' }, { text: 'air fryer', type: 'text' }] },
+      settings: { cards: ['quicksilver', 'savor', 'venturex', 'costco', 'venmo'], categories: ['fashion', 'electronics'], stash: { tier: 2, brands: ['chipotle.com', 'target.com'] }, plan: [{ text: 'running shoes', type: 'text' }, { text: 'air fryer', type: 'text' }], favorites: ['footlocker.com', 'logitech.com', 'steampowered.com'], hidden: [], extraStores: [], alerts: { list: true, favorites: true, expiring: true } },
       status: {
-        collector: { runAt: ago(2), deals: 412, sources: 254, reached: 171, details: [{ name: 'Nike', ok: true, note: 'found 2' }, { name: 'Target', ok: true, note: 'found 3' }, { name: 'Walmart', ok: false, note: 'the site showed a bot check' }, { name: 'Costco', ok: false, note: 'the site blocked automated visits (403)' }, { name: 'Slickdeals Hot Deals', ok: true, note: 'found 60' }] },
+        collector: { runAt: ago(2), deals: 1874, sources: 255, reached: 131, details: [
+          { name: 'Logitech', domain: 'logitech.com', ok: true, note: '6 promotions and codes, 25 products on sale', pages: [{ u: 'https://www.logitech.com/en-us', ok: true, n: '4 promotions, 0 products' }, { u: 'https://www.logitech.com/en-us/shop/deals', ok: true, n: '2 promotions, 24 products' }, { u: 'https://www.logitech.com/en-us/shop/outlet', ok: true, n: '4 promotions, 52 products' }] },
+          { name: 'Steam', domain: 'steampowered.com', ok: true, note: '75 games on sale', pages: [{ u: 'https://store.steampowered.com/api/featuredcategories', ok: true, n: '10 specials' }, { u: 'https://store.steampowered.com/search/results/?specials=1', ok: true, n: '50 games on sale' }] },
+          { name: 'Walmart', domain: 'walmart.com', ok: false, note: 'the site showed a bot check', pages: [{ u: 'https://www.walmart.com/', ok: false, n: 'the site showed a bot check' }] }
+        ] },
         gmail: { runAt: ago(4), deals: 9, messages: 57 }
       }
     };
