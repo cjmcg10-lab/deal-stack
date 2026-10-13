@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deal Stack</title>
+<meta name="description" content="Your coupons, card offers and the best way to pay, in one place.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Deal Stack">
+<meta name="theme-color" content="#EEF0F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C0F15" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone-width column; coupon "tickets" with a torn stub; sticky top bar and a bottom tab bar. */
+:root {
+  --paper: #EEF0F3;
+  --card: #FFFFFF;
+  --ink: #121722;
+  --ink-2: #4B5468;
+  --ink-3: #7A8396;
+  --line: #D8DCE4;
+  --marker: #FFD43B;
+  --marker-ink: #1A1500;
+  --tint: #E4E8EF;
+  --offer: #DCE6FF;
+  --offer-ink: #1E3F99;
+  --portal: #D9F2E6;
+  --portal-ink: #155C3E;
+  --good: #1E7F52;
+  --good-bg: #DDF3E7;
+  --info: #2756C8;
+  --info-bg: #E1E9FC;
+  --warn: #9A5B0C;
+  --warn-bg: #FBEBD3;
+  --mute: #5F6778;
+  --mute-bg: #E6E8ED;
+  --bad: #B33A27;
+  --bad-bg: #F8E1DC;
+  --shadow: 0 1px 0 rgba(18, 23, 34, .06), 0 8px 24px -14px rgba(18, 23, 34, .25);
+  --f-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --f-body: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C0F15; --card: #161B25; --ink: #EDF0F5; --ink-2: #B0B8C8; --ink-3: #848DA0; --line: #2A3141;
+    --marker: #FFD43B; --marker-ink: #1A1500; --tint: #212838; --offer: #1C2B52; --offer-ink: #AFC4FF;
+    --portal: #163527; --portal-ink: #9BE0BE; --good: #5CD39A; --good-bg: #133324; --info: #8FB0FF; --info-bg: #1A2747;
+    --warn: #F2B35E; --warn-bg: #3A2A12; --mute: #A3AABA; --mute-bg: #232A38; --bad: #FF8E7A; --bad-bg: #3D1C17;
+    --shadow: 0 1px 0 rgba(0, 0, 0, .4), 0 10px 26px -16px rgba(0, 0, 0, .8);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C0F15; --card: #161B25; --ink: #EDF0F5; --ink-2: #B0B8C8; --ink-3: #848DA0; --line: #2A3141;
+  --marker: #FFD43B; --marker-ink: #1A1500; --tint: #212838; --offer: #1C2B52; --offer-ink: #AFC4FF;
+  --portal: #163527; --portal-ink: #9BE0BE; --good: #5CD39A; --good-bg: #133324; --info: #8FB0FF; --info-bg: #1A2747;
+  --warn: #F2B35E; --warn-bg: #3A2A12; --mute: #A3AABA; --mute-bg: #232A38; --bad: #FF8E7A; --bad-bg: #3D1C17;
+  --shadow: 0 1px 0 rgba(0, 0, 0, .4), 0 10px 26px -16px rgba(0, 0, 0, .8);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--ink);
+  font: 15px/1.45 var(--f-body);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+a { color: var(--info); }
+
+.app { max-width: 600px; margin: 0 auto; padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 -16px; padding: 10px 16px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.logo { display: flex; align-items: center; gap: 8px; font: 700 22px/1 var(--f-display); letter-spacing: .01em; }
+.logo svg { width: 26px; height: 26px; flex: none; }
+.topbar .spacer { flex: 1; }
+.iconbtn {
+  width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+}
+.iconbtn svg { width: 19px; height: 19px; }
+.iconbtn.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.banner {
+  margin: 12px 0 0; padding: 10px 12px; border-radius: 12px;
+  background: var(--warn-bg); color: var(--warn); font-size: 13.5px; line-height: 1.4;
+}
+.banner b { color: inherit; }
+
+/* Headings */
+.view-head { padding: 18px 0 6px; }
+.view-head h1 { margin: 0; font: 700 34px/1.02 var(--f-display); letter-spacing: .005em; text-wrap: balance; }
+.view-head .sub { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; }
+section { margin-top: 22px; }
+.sec-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; }
+.sec-head h2 { margin: 0; font: 700 21px/1.1 var(--f-display); letter-spacing: .01em; }
+.sec-head .hint { color: var(--ink-3); font-size: 12.5px; }
+.sec-head .more { margin-left: auto; font-size: 13px; color: var(--info); background: none; border: 0; padding: 0; }
+.eyebrow { font: 600 11px/1 var(--f-body); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Summary strip */
+.tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.tally div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 10px 9px; min-width: 0; }
+.tally b { display: block; font: 700 26px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.tally span { display: block; margin-top: 3px; color: var(--ink-2); font-size: 12px; line-height: 1.25; }
+
+/* Chips */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 16px 4px; margin: 12px -16px 0; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink-2); font-size: 13.5px; font-weight: 500; white-space: nowrap;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip .n { margin-left: 5px; opacity: .65; font-variant-numeric: tabular-nums; }
+
+/* Coupon ticket */
+.list { display: flex; flex-direction: column; gap: 10px; }
+.coupon {
+  position: relative; display: grid; grid-template-columns: 86px 1fr; width: 100%; text-align: left;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 0;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.coupon::before, .coupon::after {
+  content: ''; position: absolute; left: 77px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--paper); border: 1px solid var(--line);
+}
+.coupon::before { top: -10px; }
+.coupon::after { bottom: -10px; }
+.stub {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  padding: 12px 6px; border-right: 2px dashed var(--line); min-height: 100%;
+  background: var(--marker); color: var(--marker-ink);
+}
+.stub[data-kind="sale"] { background: var(--tint); color: var(--ink); }
+.stub[data-kind="cardoffer"] { background: var(--offer); color: var(--offer-ink); }
+.stub[data-kind="portal"] { background: var(--portal); color: var(--portal-ink); }
+.stub .pre { font: 600 9.5px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.stub .big { font: 700 31px/.95 var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.stub .big.sm { font-size: 22px; }
+.stub .unit { font: 700 12px/1 var(--f-display); letter-spacing: .14em; }
+.cbody { padding: 11px 13px 11px 15px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.row1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand { font-weight: 700; font-size: 14.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctitle { color: var(--ink); font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gist { color: var(--ink-2); font-size: 12.5px; line-height: 1.35; }
+.row3 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.codetag {
+  font: 600 12px/1 var(--f-mono); letter-spacing: .04em; padding: 4px 7px; border-radius: 6px;
+  border: 1.5px dashed var(--ink-3); color: var(--ink);
+}
+.cattag { font-size: 11.5px; color: var(--ink-3); }
+.why { font-size: 11.5px; color: var(--good); font-weight: 600; }
+
+/* Status pill */
+.status { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.status .sc { font-variant-numeric: tabular-nums; opacity: .8; font-weight: 500; }
+.s-tested { background: var(--good-bg); color: var(--good); }
+.s-official { background: var(--info-bg); color: var(--info); }
+.s-likely { background: var(--warn-bg); color: var(--warn); }
+.s-unconfirmed { background: var(--mute-bg); color: var(--mute); }
+.s-failed, .s-expired { background: var(--bad-bg); color: var(--bad); }
+
+/* Stacks list */
+.stackrow {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; width: 100%; text-align: left;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px;
+}
+.stackrow + .stackrow { margin-top: 8px; }
+.stackrow .nm { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stackrow .pc { grid-row: span 2; font: 700 28px/1 var(--f-display); font-variant-numeric: tabular-nums; text-align: right; }
+.stackrow .pc small { display: block; font: 500 11px/1.2 var(--f-body); color: var(--ink-3); letter-spacing: 0; }
+.stackrow .how { color: var(--ink-2); font-size: 12.5px; min-width: 0; }
+.mark { background: linear-gradient(transparent 55%, var(--marker) 55%); padding: 0 2px; color: inherit; }
+:root[data-theme="dark"] .mark { background: linear-gradient(transparent 55%, color-mix(in srgb, var(--marker) 45%, transparent) 55%); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mark { background: linear-gradient(transparent 55%, color-mix(in srgb, var(--marker) 45%, transparent) 55%); } }
+
+/* Forms */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label, .lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.input, select.input {
+  width: 100%; min-width: 0; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font-size: 16px;
+}
+.search { position: relative; margin-top: 12px; }
+.search svg { position: absolute; left: 12px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--ink-3); }
+.search .input { padding-left: 38px; }
+.filters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+.filters select { padding: 9px 8px; font-size: 14px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 16px; border-radius: 12px;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--paper); font-weight: 600; font-size: 15px; text-decoration: none;
+}
+.btn.ghost { background: var(--card); color: var(--ink); border-color: var(--line); }
+.btn.sm { padding: 7px 12px; font-size: 13.5px; border-radius: 10px; }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: .5; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.count { color: var(--ink-3); font-size: 12.5px; margin: 12px 0 8px; }
+.empty { padding: 26px 16px; text-align: center; color: var(--ink-2); background: var(--card); border: 1px dashed var(--line); border-radius: var(--r); }
+.empty b { display: block; color: var(--ink); margin-bottom: 4px; }
+
+/* Best way */
+.picker { position: relative; }
+.suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 15; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); max-height: 280px; overflow-y: auto; }
+.suggest button { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 11px 14px; border: 0; background: none; text-align: left; border-bottom: 1px solid var(--line); }
+.suggest button:last-child { border-bottom: 0; }
+.suggest small { color: var(--ink-3); }
+.waygrid { display: grid; grid-template-columns: 1fr 120px; gap: 8px; margin-top: 12px; }
+.amount { position: relative; }
+.amount span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+.amount .input { padding-left: 24px; font-variant-numeric: tabular-nums; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.plan { margin-top: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); }
+.plan-top { padding: 16px 16px 14px; border-bottom: 2px dashed var(--line); }
+.plan-top .eyebrow { margin-bottom: 6px; }
+.plan-save { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.plan-save .big { font: 700 46px/.95 var(--f-display); font-variant-numeric: tabular-nums; }
+.plan-save .of { color: var(--ink-2); font-size: 14px; }
+.plan-pay { margin-top: 6px; color: var(--ink-2); font-size: 13px; }
+.plan-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 10px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; font-size: 14.5px; }
+.steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--paper); font: 700 14px/1 var(--f-display); }
+.parts { border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.parts div { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+.parts div span:first-child { color: var(--ink-2); min-width: 0; }
+.parts div span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+.parts .tot { border-top: 1px solid var(--line); padding-top: 6px; font-weight: 700; }
+.parts .tot span:first-child { color: var(--ink); }
+.notes { display: flex; flex-direction: column; gap: 6px; }
+.note { font-size: 12.5px; color: var(--ink-2); padding-left: 12px; border-left: 3px solid var(--line); }
+.note.warnnote { border-color: var(--marker); color: var(--ink); }
+.alts { display: flex; flex-direction: column; gap: 4px; }
+.alts div { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.alts div:last-child { border-bottom: 0; }
+.alts span:last-child { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.rules { display: flex; flex-direction: column; gap: 8px; }
+.rule { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.rule b { display: block; margin-bottom: 3px; }
+.rule p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+
+/* My list */
+.addrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
+.planitem { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.planitem + .planitem { margin-top: 10px; }
+.planitem .ph { display: flex; align-items: center; gap: 10px; }
+.planitem .ph b { flex: 1; min-width: 0; }
+.planitem .ph small { color: var(--ink-3); }
+.planitem .pm { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.x { border: 0; background: none; color: var(--ink-3); padding: 4px 6px; font-size: 13px; }
+
+/* Cards tab */
+.wallet { display: flex; flex-direction: column; gap: 10px; }
+.wcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 13px 14px; }
+.wcard .wh { display: flex; align-items: center; gap: 10px; }
+.wcard .wh b { flex: 1; min-width: 0; }
+.wcard ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; }
+.wcard ul li + li { margin-top: 2px; }
+.switch { position: relative; width: 46px; height: 28px; flex: none; }
+.switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; inset: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .15s; pointer-events: none; }
+.switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .15s; }
+.switch input:checked + span { background: var(--good); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.seg { display: inline-grid; grid-auto-flow: column; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; background: var(--card); padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.progrow { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.progrow:last-child { border-bottom: 0; }
+.progrow div { flex: 1; min-width: 0; }
+.progrow small { display: block; color: var(--ink-3); font-size: 12px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 4px 14px; }
+.panel.pad { padding: 14px; }
+.brandpick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 210px; overflow-y: auto; }
+.ocr-row { display: grid; grid-template-columns: 22px 1fr 70px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ocr-row .input { padding: 8px 10px; font-size: 15px; }
+
+/* Sheet */
+.backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(8, 10, 15, .45); }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-width: 600px; margin: 0 auto;
+  max-height: calc(92% - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--paper); border-radius: 22px 22px 0 0; padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -10px 40px -10px rgba(0,0,0,.35);
+}
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 2px auto 10px; }
+.sheet-head { display: flex; align-items: flex-start; gap: 10px; }
+.sheet-head h3 { margin: 0; flex: 1; font: 700 26px/1.05 var(--f-display); text-wrap: balance; }
+.detail-val { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.detail-val .stub { border-radius: 12px; border-right: 0; padding: 12px 14px; min-width: 92px; min-height: 0; }
+.detail-val .gist { font-size: 14px; }
+.codebox { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px; border-radius: 14px; border: 2px dashed var(--ink-3); background: var(--card); }
+.codebox code { flex: 1; min-width: 0; font: 600 22px/1.1 var(--f-mono); letter-spacing: .06em; overflow-wrap: anywhere; }
+.block { margin-top: 16px; }
+.block h4 { margin: 0 0 8px; font: 700 18px/1.1 var(--f-display); letter-spacing: .01em; }
+.bullets { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.bullets li { position: relative; padding-left: 20px; font-size: 14.5px; }
+.bullets li::before { content: ''; position: absolute; left: 3px; top: .55em; width: 7px; height: 7px; border-radius: 2px; background: var(--ink); transform: rotate(45deg); }
+.reasons { display: flex; flex-direction: column; gap: 6px; }
+.reasons div { display: flex; gap: 8px; font-size: 13.5px; color: var(--ink-2); }
+.reasons div::before { content: ''; flex: none; width: 8px; height: 8px; margin-top: .45em; border-radius: 50%; background: var(--mute); }
+.reasons div.good::before { background: var(--good); }
+.reasons div.bad::before { background: var(--bad); }
+.meter { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 6px 0 10px; }
+.meter i { display: block; height: 100%; background: var(--ink); border-radius: 99px; }
+.fullterms { margin-top: 8px; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.toggle-terms { margin-top: 10px; background: none; border: 0; padding: 0; color: var(--info); font-weight: 600; font-size: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.src-list { display: flex; flex-direction: column; font-size: 13px; }
+.src-list div { display: grid; grid-template-columns: 10px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.src-list i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--bad); }
+.src-list i.ok { background: var(--good); }
+.src-list span small { display: block; color: var(--ink-3); }
+.mono { font-family: var(--f-mono); font-size: 13px; overflow-wrap: anywhere; }
+
+/* Tab bar */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: saturate(1.4) blur(16px); -webkit-backdrop-filter: saturate(1.4) blur(16px);
+  border-top: 1px solid var(--line);
+}
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border: 0; background: none; color: var(--ink-3); font-size: 11px; font-weight: 600; border-radius: 10px; }
+.tabbar svg { width: 23px; height: 23px; }
+.tabbar button[aria-current="page"] { color: var(--ink); }
+.tabbar button[aria-current="page"] svg { color: var(--ink); }
+.tabbar button[aria-current="page"] .tb-dot { background: var(--marker); }
+.tb-ico { position: relative; }
+.tb-dot { position: absolute; right: -5px; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: transparent; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 60; transform: translateX(-50%);
+  max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 12px; background: var(--ink); color: var(--paper); font-size: 14px; font-weight: 500; box-shadow: var(--shadow);
+}
+.connect { padding-top: 40px; display: flex; flex-direction: column; gap: 14px; }
+.connect h1 { margin: 0; font: 700 40px/1 var(--f-display); }
+.connect p { margin: 0; color: var(--ink-2); }
+.err { color: var(--bad); font-size: 13.5px; }
+.loading { padding: 60px 0; text-align: center; color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (min-width: 640px) { .app { padding-left: 24px; padding-right: 24px; } }
+
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<nav id="tabbar" class="tabbar" aria-label="Sections" hidden></nav>
+<div id="sheethost"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="engine.js"></script>
+<script>
+/* Deal Stack app. Runs in Safari / as a home-screen app, talking to your private hub. */
+(function () {
+  'use strict';
+  var E = window.DealEngine;
+  var PREVIEW = !!window.DEALSTACK_PREVIEW;
+  var OCR_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+
+  /* ---------------- helpers ---------------- */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var mem = {};
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem('dealstack.' + k); return v == null ? (k in mem ? mem[k] : d) : JSON.parse(v); } catch (e) { return k in mem ? mem[k] : d; } },
+    set: function (k, v) { mem[k] = v; try { localStorage.setItem('dealstack.' + k, JSON.stringify(v)); } catch (e) { } },
+    del: function (k) { delete mem[k]; try { localStorage.removeItem('dealstack.' + k); } catch (e) { } }
+  };
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  var ICON = {
+    logo: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="2.5" width="18" height="9" rx="2.5" fill="currentColor" opacity=".28"/><rect x="4.5" y="7.5" width="23" height="10" rx="2.8" fill="currentColor" opacity=".55"/><path d="M3 15.5a3 3 0 0 1 3-3h20a3 3 0 0 1 3 3v2.6a2.6 2.6 0 0 0 0 5.2v2.7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.7a2.6 2.6 0 0 0 0-5.2z" fill="var(--marker)" stroke="currentColor" stroke-width="1.6"/><path d="M12 19.5l8-0M12 23.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.5M4 4v4h4M4 13a8 8 0 0 0 14.9 3.5M20 20v-4h-4"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+    foryou: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.4 5.4 5.6.6-4.2 3.9 1.2 5.6L12 15.6 7 18.5l1.2-5.6L4 9l5.6-.6z"/></svg>',
+    browse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3.5a2.5 2.5 0 0 0 0 5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3.5a2.5 2.5 0 0 0 0-5z"/><path d="M9.5 4v16" stroke-dasharray="2 2.2"/></svg>',
+    way: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l9-9-4-4-9 9z"/><path d="M13 7l4 4"/><path d="M15 3h6v6"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L6.8 5M3.5 12l1.2 1.2 2.1-2.2M3.5 18l1.2 1.2 2.1-2.2"/></svg>',
+    cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 15h4"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>',
+    out: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+    close: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  };
+
+  var TABS = [
+    { id: 'foryou', label: 'For You' },
+    { id: 'browse', label: 'Browse' },
+    { id: 'way', label: 'Best Way' },
+    { id: 'list', label: 'My List' },
+    { id: 'cards', label: 'Cards' }
+  ];
+
+  /* ---------------- state ---------------- */
+  var S = {
+    mode: 'loading',
+    live: false,
+    demo: false,
+    key: store.get('key', ''),
+    raw: null,
+    items: [], byId: {}, byDomain: {}, stacks: {}, extras: {}, recs: [],
+    settings: mergeSettings(store.get('settings', null)),
+    tab: store.get('tab', 'foryou'),
+    fy: { cat: 'all' },
+    browse: { q: '', cats: [], status: 'working', type: 'all', sort: 'best', limit: 40 },
+    way: { domain: store.get('wayDomain', null), amount: store.get('wayAmount', 100), q: '' },
+    listOpen: {},
+    sheet: null,
+    ocr: null,
+    ocrProgram: 'venmo',
+    stashQ: '',
+    busy: false
+  };
+  if (!TABS.some(function (t) { return t.id === S.tab; })) S.tab = 'foryou';
+
+  function mergeSettings(s) {
+    var base = clone(E.DEFAULT_SETTINGS);
+    if (!s || typeof s !== 'object') return base;
+    Object.keys(s).forEach(function (k) { base[k] = s[k]; });
+    if (!base.stash || typeof base.stash !== 'object') base.stash = { tier: 1, brands: [] };
+    if (!Array.isArray(base.stash.brands)) base.stash.brands = [];
+    if (!Array.isArray(base.cards)) base.cards = clone(E.DEFAULT_SETTINGS.cards);
+    if (!Array.isArray(base.categories)) base.categories = [];
+    if (!Array.isArray(base.plan)) base.plan = [];
+    return base;
+  }
+
+  var saveTimer = null;
+  function saveSettings() {
+    store.set('settings', S.settings);
+    computeStacks();
+    if (!S.live || !S.key) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { api('/api/settings', { method: 'PUT', body: { settings: S.settings } }); }, 600);
+  }
+
+  /* ---------------- talking to the hub ---------------- */
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'content-type': 'application/json' };
+    if (S.key) headers['x-hub-key'] = S.key;
+    return fetch(path, { method: opts.method || 'GET', headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined, cache: 'no-store' })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          var j; try { j = JSON.parse(t); } catch (e) { j = { ok: false, error: 'Unexpected reply from the hub (' + r.status + ').' }; }
+          j._status = r.status; return j;
+        });
+      });
+  }
+
+  function boot() {
+    if (PREVIEW) return startDemo();
+    render();
+    fetch('/api/ping', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (p) {
+      if (!p || p.app !== 'deal-stack') return startDemo();
+      S.live = true;
+      S.ping = p;
+      if (!S.key) { S.mode = 'connect'; render(); return; }
+      var cached = store.get('cache', null);
+      if (cached && cached.deals) { S.raw = cached; S.mode = 'ready'; derive(); render(); }
+      load();
+    }).catch(startDemo);
+  }
+
+  function load(manual) {
+    S.busy = true; paintTopbar();
+    api('/api/deals').then(function (j) {
+      S.busy = false;
+      if (j._status === 401) { S.mode = 'connect'; S.connectErr = "That key doesn't match the APP_KEY in Cloudflare."; render(); return; }
+      if (!j.ok) { paintTopbar(); toast(j.error || 'Could not load deals.'); if (!S.raw) { S.raw = { deals: [], tests: [], sight: {}, status: {} }; S.mode = 'ready'; derive(); render(); } return; }
+      S.raw = j;
+      if (j.settings) { S.settings = mergeSettings(j.settings); store.set('settings', S.settings); }
+      else if (S.live) api('/api/settings', { method: 'PUT', body: { settings: S.settings } });
+      S.mode = 'ready';
+      derive(); render();
+      if (manual) toast('Updated: ' + S.items.filter(usable).length + ' deals you can use');
+      try { var txt = JSON.stringify(j); if (txt.length < 2500000) store.set('cache', j); } catch (e) { }
+    }).catch(function () {
+      S.busy = false; paintTopbar();
+      toast(S.raw ? 'No connection. Showing your saved deals.' : 'Could not reach your hub.');
+      if (!S.raw) { S.mode = 'connect'; S.connectErr = 'Could not reach your hub. Check your connection and try again.'; render(); }
+    });
+  }
+
+  function startDemo() {
+    S.demo = true; S.live = false; S.mode = 'ready';
+    S.raw = sampleData(new Date());
+    var saved = store.get('settings', null);
+    S.settings = mergeSettings(saved || S.raw.settings);
+    derive(); render();
+  }
+
+  /* ---------------- deriving what to show ---------------- */
+  function usable(x) { return x.a.status !== 'failed' && x.a.status !== 'expired'; }
+  function working(x) { return x.a.status === 'tested' || x.a.status === 'official' || x.a.status === 'likely'; }
+
+  function derive() {
+    var now = new Date();
+    var raw = S.raw || { deals: [] };
+    var testsBy = {};
+    (raw.tests || []).forEach(function (t) { (testsBy[t.deal_id] = testsBy[t.deal_id] || []).push(t); });
+    S.items = []; S.byId = {}; S.byDomain = {};
+    (raw.deals || []).forEach(function (rec) {
+      if (!rec || !rec.d) return;
+      var a = E.assess(rec, { now: now, sight: raw.sight || {}, tests: testsBy[rec.id] || [] });
+      var x = { rec: rec, a: a };
+      S.items.push(x); S.byId[rec.id] = x;
+      (S.byDomain[rec.d.domain] = S.byDomain[rec.d.domain] || []).push(x);
+    });
+    computeStacks();
+  }
+
+  function realDomain(d) { return d && d.indexOf('deal:') !== 0 && d !== 'unknown'; }
+
+  function computeStacks() {
+    S.stacks = {}; S.extras = {};
+    Object.keys(S.byDomain).forEach(function (dom) {
+      if (!realDomain(dom)) return;
+      var items = S.byDomain[dom];
+      var st = E.storeFor(dom, items.map(function (x) { return x.rec; }));
+      var plan = E.planForStore(st, items, S.settings, 100);
+      S.stacks[dom] = plan;
+      var discPct = plan.discount ? plan.discount.value : 0;
+      S.extras[dom] = plan.best ? Math.max(0, plan.best.total - discPct) : 0;
+    });
+    S.recs = E.recommend(S.items, S.settings, S.extras);
+  }
+
+  /* ---------------- shared pieces ---------------- */
+  function stubFor(x) {
+    var p = x.a.terms, d = x.rec.d;
+    var pre = p.upTo ? 'up to' : (p.extra ? 'extra' : '');
+    var big = '', unit = '', sm = false;
+    if (p.item && d.price && !p.pct && !p.amt) { big = E.money(d.price); unit = 'DEAL'; }
+    else if ((d.kind === 'cardoffer' || d.kind === 'portal') && (p.cashPct || p.cashAmt)) {
+      big = p.cashPct ? E.pctStr(p.cashPct) : E.money(p.cashAmt); unit = 'BACK';
+    } else if (p.pct) { big = E.pctStr(p.pct); unit = 'OFF'; }
+    else if (p.amt) { big = E.money(p.amt); unit = 'OFF'; }
+    else if (p.cashPct) { big = E.pctStr(p.cashPct); unit = 'BACK'; }
+    else if (p.cashAmt) { big = E.money(p.cashAmt); unit = 'BACK'; }
+    else if (p.bogo) { big = 'BOGO'; sm = true; }
+    else if (p.freeShip) { big = 'FREE'; unit = 'SHIP'; sm = true; }
+    else if (d.price) { big = E.money(d.price); unit = 'DEAL'; sm = String(big).length > 5; }
+    else { big = 'DEAL'; sm = true; }
+    if (String(big).length >= 5) sm = true;
+    return '<div class="stub" data-kind="' + esc(d.kind) + '">' + (pre ? '<span class="pre">' + esc(pre) + '</span>' : '') +
+      '<span class="big' + (sm ? ' sm' : '') + '">' + esc(big) + '</span>' + (unit ? '<span class="unit">' + unit + '</span>' : '') + '</div>';
+  }
+
+  function statusPill(a, withScore) {
+    var s = E.STATUS[a.status] || { label: a.status };
+    return '<span class="status s-' + esc(a.status) + '"><i></i>' + esc(s.label) + (withScore !== false ? ' <span class="sc">' + a.score + '</span>' : '') + '</span>';
+  }
+
+  function kindWord(d) {
+    if (d.kind === 'cardoffer') return (E.PROGRAMS[d.card] || {}).name || 'Card offer';
+    if (d.kind === 'portal') return 'Capital One Shopping';
+    return null;
+  }
+
+  function couponCard(x, why) {
+    var d = x.rec.d, a = x.a;
+    var cat = E.CAT_BY_ID[d.cat];
+    var kw = kindWord(d);
+    var title = d.kind === 'cardoffer' || d.kind === 'portal' ? (kw + ': ' + (a.terms.headline || d.title)) : d.title;
+    return '<button class="coupon" data-action="deal" data-id="' + esc(x.rec.id) + '">' + stubFor(x) +
+      '<div class="cbody"><div class="row1"><span class="brand">' + esc(d.brand) + '</span>' + statusPill(a) + '</div>' +
+      '<div class="ctitle">' + esc(title) + '</div>' +
+      (a.terms.gist ? '<div class="gist">' + esc(a.terms.gist) + '</div>' : '') +
+      '<div class="row3">' + (d.code ? '<span class="codetag">' + esc(d.code) + '</span>' : '') +
+      (why && why.length ? '<span class="why">' + esc(why[0]) + '</span>' : (cat ? '<span class="cattag">' + esc(cat.label) + '</span>' : '')) +
+      '</div></div></button>';
+  }
+
+  function emptyBox(title, body) { return '<div class="empty"><b>' + esc(title) + '</b>' + esc(body) + '</div>'; }
+
+  function stackSummary(plan) {
+    var b = plan.best;
+    if (!b) return '';
+    var bits = b.parts.map(function (p) {
+      if (p.kind === 'discount') return p.label;
+      if (p.kind === 'reward') return b.card.short;
+      return p.label;
+    });
+    return bits.join(' + ');
+  }
+
+  function stackRow(dom, plan) {
+    var b = plan.best;
+    return '<button class="stackrow" data-action="way" data-domain="' + esc(dom) + '"><span class="nm">' + esc(plan.store.name) + '</span>' +
+      '<span class="pc">' + E.pctStr(b.totalPct) + '<small>on $100</small></span>' +
+      '<span class="how">Pay with ' + esc(b.card.short) + ' · ' + esc(stackSummary(plan)) + '</span></button>';
+  }
+
+  function topStacks(n, filterCat) {
+    var rows = Object.keys(S.stacks).map(function (dom) { return [dom, S.stacks[dom]]; }).filter(function (r) {
+      var p = r[1];
+      if (!p.best || !p.best.total) return false;
+      var hasDeal = (S.byDomain[r[0]] || []).some(usable);
+      if (!hasDeal) return false;
+      if (filterCat && filterCat !== 'all' && p.store.cat !== filterCat) return false;
+      return true;
+    });
+    rows.sort(function (a, b) { return b[1].best.totalPct - a[1].best.totalPct; });
+    return rows.slice(0, n);
+  }
+
+  /* ---------------- views ---------------- */
+  function viewForYou() {
+    var all = S.items.filter(usable);
+    var tested = all.filter(function (x) { return x.a.status === 'tested'; });
+    var cats = catCounts(all);
+    var mine = S.settings.categories || [];
+    var fc = S.fy.cat;
+    var recs = S.recs.filter(function (x) { return fc === 'all' || x.rec.d.cat === fc; });
+    var bestStack = topStacks(1)[0];
+    var h = '<header class="view-head"><h1>For you</h1><p class="sub">' +
+      (mine.length ? 'Ranked for ' + mine.map(function (c) { return E.CAT_BY_ID[c] ? E.CAT_BY_ID[c].label : c; }).join(', ') + ', your list and your cards.' : 'Ranked by value, how sure we are they work, your list and your cards.') + '</p></header>';
+    h += '<div class="tally"><div><b>' + all.filter(working).length + '</b><span>deals that should work</span></div>' +
+      '<div><b>' + tested.length + '</b><span>worked at a checkout</span></div>' +
+      '<div><b>' + (bestStack ? E.pctStr(bestStack[1].best.totalPct) : '–') + '</b><span>' + (bestStack ? 'best stack, ' + esc(bestStack[1].store.name) : 'best stack') + '</span></div></div>';
+    h += '<div class="chips" role="group" aria-label="Category">' + chip('fy-cat', 'all', 'All', fc === 'all') +
+      orderCats(cats).map(function (c) { return chip('fy-cat', c.id, c.label, fc === c.id, cats[c.id]); }).join('') +
+      (mine.length ? '' : '<button class="chip" data-action="settings" data-focus="cats">Pick your categories…</button>') + '</div>';
+
+    h += '<section><div class="sec-head"><h2>Best matches</h2><span class="hint">value × reliability × your picks</span></div>';
+    h += recs.length ? '<div class="list">' + recs.slice(0, 8).map(function (x) { return couponCard(x, x.why); }).join('') + '</div>' : emptyBox('Nothing here yet', ' Deals show up after the collector runs. Pull to refresh with the button at the top.');
+    h += '</section>';
+
+    var stacks = topStacks(5, fc);
+    if (stacks.length) {
+      h += '<section><div class="sec-head"><h2>Biggest stacks right now</h2><button class="more" data-action="tab" data-tab="way">Best Way</button></div>';
+      h += stacks.map(function (r) { return stackRow(r[0], r[1]); }).join('') + '</section>';
+    }
+    var soon = all.filter(function (x) { return x.a.daysLeft != null && x.a.daysLeft <= 3 && working(x) && (fc === 'all' || x.rec.d.cat === fc) && E.typicalPct(x.a.terms, x.rec.d) > 0; })
+      .sort(function (a, b) { return a.a.daysLeft - b.a.daysLeft || b.a.score - a.a.score; });
+    if (soon.length) h += '<section><div class="sec-head"><h2>Ending soon</h2><span class="hint">3 days or less</span></div><div class="list">' + soon.slice(0, 5).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+    var tl = tested.filter(function (x) { return fc === 'all' || x.rec.d.cat === fc; });
+    if (tl.length) h += '<section><div class="sec-head"><h2>Worked at checkout</h2></div><div class="list">' + tl.slice(0, 5).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+    return h;
+  }
+
+  function catCounts(list) {
+    var c = {};
+    list.forEach(function (x) { c[x.rec.d.cat] = (c[x.rec.d.cat] || 0) + 1; });
+    return c;
+  }
+  function orderCats(counts) {
+    var mine = S.settings.categories || [];
+    return E.CATEGORIES.filter(function (c) { return counts[c.id]; }).sort(function (a, b) {
+      var am = mine.indexOf(a.id) >= 0 ? 0 : 1, bm = mine.indexOf(b.id) >= 0 ? 0 : 1;
+      return am - bm || counts[b.id] - counts[a.id];
+    });
+  }
+  function chip(action, val, label, on, n) {
+    return '<button class="chip" data-action="' + action + '" data-val="' + esc(val) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(label) + (n ? '<span class="n">' + n + '</span>' : '') + '</button>';
+  }
+
+  function viewBrowse() {
+    var b = S.browse;
+    var cats = catCounts(S.items.filter(usable));
+    var h = '<header class="view-head"><h1>Browse</h1><p class="sub">Every coupon, sale and card offer the hub has found.</p></header>';
+    h += '<div class="search">' + ICON.search + '<input class="input" id="bq" type="search" placeholder="Search a store, item or code" autocomplete="off" value="' + esc(b.q) + '"></div>';
+    h += '<div class="chips" role="group" aria-label="Categories">' + chip('br-cat', 'all', 'All', !b.cats.length) +
+      orderCats(cats).map(function (c) { return chip('br-cat', c.id, c.label, b.cats.indexOf(c.id) >= 0, cats[c.id]); }).join('') + '</div>';
+    h += '<div class="filters">' +
+      sel('bstatus', b.status, [['working', 'Should work'], ['tested', 'Tested only'], ['all', 'All active'], ['failed', "Didn't work"]], 'Status') +
+      sel('btype', b.type, [['all', 'All types'], ['code', 'Codes'], ['sale', 'Sales'], ['cardoffer', 'Card offers'], ['portal', 'Cash back sites']], 'Type') +
+      sel('bsort', b.sort, [['best', 'Best match'], ['savings', 'Biggest savings'], ['ending', 'Ending soon'], ['newest', 'Newest'], ['reliable', 'Most reliable']], 'Sort') + '</div>';
+    h += '<div id="bresults">' + browseResults() + '</div>';
+    return h;
+  }
+  function sel(id, val, opts, label) {
+    return '<select class="input" id="' + id + '" aria-label="' + esc(label) + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === val ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+  }
+
+  function browseList() {
+    var b = S.browse;
+    var q = b.q.trim().toLowerCase();
+    var rankOf = {};
+    S.recs.forEach(function (x, i) { rankOf[x.rec.id] = i; });
+    var list = S.items.filter(function (x) {
+      var st = x.a.status;
+      if (b.status === 'working' && !working(x)) return false;
+      if (b.status === 'tested' && st !== 'tested') return false;
+      if (b.status === 'all' && (st === 'failed' || st === 'expired')) return false;
+      if (b.status === 'failed' && st !== 'failed') return false;
+      if (b.type !== 'all' && x.rec.d.kind !== b.type) return false;
+      if (b.cats.length && b.cats.indexOf(x.rec.d.cat) < 0) return false;
+      if (q) {
+        var d = x.rec.d;
+        var hay = (d.brand + ' ' + d.title + ' ' + (d.code || '') + ' ' + d.terms + ' ' + d.domain).toLowerCase();
+        if (q.split(/\s+/).some(function (w) { return hay.indexOf(w) < 0; })) return false;
+      }
+      return true;
+    });
+    var sorters = {
+      best: function (a, c) { var ra = rankOf[a.rec.id], rc = rankOf[c.rec.id]; if (ra == null && rc == null) return c.a.score - a.a.score; if (ra == null) return 1; if (rc == null) return -1; return ra - rc; },
+      savings: function (a, c) { return E.typicalPct(c.a.terms, c.rec.d) - E.typicalPct(a.a.terms, a.rec.d); },
+      ending: function (a, c) { var x = a.a.daysLeft == null ? 999 : a.a.daysLeft, y = c.a.daysLeft == null ? 999 : c.a.daysLeft; return x - y; },
+      newest: function (a, c) { return String(c.rec.d.posted || c.rec.fs).localeCompare(String(a.rec.d.posted || a.rec.fs)); },
+      reliable: function (a, c) { return c.a.score - a.a.score; }
+    };
+    list.sort(sorters[b.sort] || sorters.best);
+    return list;
+  }
+  function browseResults() {
+    var list = browseList();
+    var b = S.browse;
+    var h = '<p class="count">' + list.length + (list.length === 1 ? ' deal' : ' deals') + '</p>';
+    if (!list.length) return h + emptyBox('No deals match', ' Try another word, clear a category, or set Status to All active.');
+    h += '<div class="list">' + list.slice(0, b.limit).map(function (x) { return couponCard(x); }).join('') + '</div>';
+    if (list.length > b.limit) h += '<p style="text-align:center;margin-top:14px"><button class="btn ghost" data-action="more">Show ' + Math.min(40, list.length - b.limit) + ' more</button></p>';
+    return h;
+  }
+
+  /* Best way */
+  function allStores() {
+    var seen = {};
+    var out = [];
+    Object.keys(S.byDomain).forEach(function (dom) {
+      if (!realDomain(dom)) return;
+      var st = E.storeFor(dom, S.byDomain[dom].map(function (x) { return x.rec; }));
+      seen[dom] = 1;
+      out.push({ domain: dom, name: st.name, n: S.byDomain[dom].filter(usable).length, pseudo: !!st.pseudo });
+    });
+    E.BRANDS.forEach(function (b) { if (!seen[b.domain]) { seen[b.domain] = 1; out.push({ domain: b.domain, name: b.name, n: 0, pseudo: b.pseudo }); } });
+    return out;
+  }
+  function suggestions(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return [];
+    var nq = E.normName(q);
+    return allStores().filter(function (s) { return s.name.toLowerCase().indexOf(q) >= 0 || E.normName(s.name).indexOf(nq) >= 0 || s.domain.indexOf(q) >= 0; })
+      .sort(function (a, b) { var as = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, bs = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1; return as - bs || b.n - a.n || a.name.localeCompare(b.name); })
+      .slice(0, 8);
+  }
+  function viewWay() {
+    var w = S.way;
+    var st = w.domain ? E.storeFor(w.domain, (S.byDomain[w.domain] || []).map(function (x) { return x.rec; })) : null;
+    var h = '<header class="view-head"><h1>Best way to pay</h1><p class="sub">Pick where you\'re shopping and how much. You get the order of steps that saves the most, using your codes, offers and cards.</p></header>';
+    h += '<div class="waygrid"><div class="picker"><label class="lbl" for="wayq">Store</label><input class="input" id="wayq" type="search" autocomplete="off" placeholder="Search stores" value="' + esc(w.q || (st ? st.name : '')) + '"><div class="suggest" id="waysug" hidden></div></div>' +
+      '<div class="amount"><label class="lbl" for="wayamt">Spending</label><div style="position:relative"><span>$</span><input class="input" id="wayamt" type="number" inputmode="decimal" min="1" step="1" value="' + esc(w.amount) + '"></div></div></div>';
+    var quick = E.BRANDS.filter(function (b) { return b.pseudo; }).slice(0, 7);
+    h += '<div class="quick">' + quick.map(function (b) { return '<button class="chip" data-action="way" data-domain="' + esc(b.domain) + '" aria-pressed="' + (w.domain === b.domain) + '">' + esc(b.name) + '</button>'; }).join('') + '</div>';
+    h += '<div id="wayplan">' + (st ? planBlock(st) : '') + '</div>';
+    var stacks = topStacks(6);
+    if (stacks.length) h += '<section><div class="sec-head"><h2>Top stacks right now</h2><span class="hint">on a $100 order</span></div>' + stacks.map(function (r) { return stackRow(r[0], r[1]); }).join('') + '</section>';
+    h += '<section><div class="sec-head"><h2>Rules that save the most</h2></div><div class="rules">' + E.RULES.map(function (r) { return '<div class="rule"><b>' + esc(r.t) + '</b><p>' + esc(r.b) + '</p></div>'; }).join('') + '</div></section>';
+    return h;
+  }
+  function planBlock(st) {
+    var items = S.byDomain[st.domain] || [];
+    var amt = Math.max(1, Number(S.way.amount) || 100);
+    var plan = E.planForStore(st, items, S.settings, amt);
+    var b = plan.best;
+    if (!b) return emptyBox('Add your cards first', ' Turn on the cards you carry in the Cards tab.');
+    var charged = amt - (plan.discount ? plan.discount.value : 0);
+    var back = b.total - (plan.discount ? plan.discount.value : 0);
+    var h = '<div class="plan"><div class="plan-top"><div class="eyebrow">' + esc(st.name) + ' · ' + E.money(amt) + ' order</div>' +
+      '<div class="plan-save"><span class="big"><span class="mark">' + E.money(b.total) + '</span></span><span class="of">saved, ' + E.pctStr(b.totalPct) + ' of your order</span></div>' +
+      '<div class="plan-pay">You\'re charged ' + E.money(charged) + (back > 0 ? '. ' + E.money(back) + ' comes back later as rewards.' : '.') + '</div></div>';
+    h += '<div class="plan-body"><ol class="steps">' + b.steps.map(function (s) { return '<li><span>' + esc(s) + '</span></li>'; }).join('') + '</ol>';
+    h += '<div class="parts">' + b.parts.map(function (p) { return '<div><span>' + esc(p.label) + '</span><span>' + E.money(p.amt) + '</span></div>'; }).join('') +
+      '<div class="tot"><span>Total saved</span><span>' + E.money(b.total) + '</span></div></div>';
+    var notes = plan.warnings.map(function (w) { return '<div class="note warnnote">' + esc(w) + '</div>'; }).concat(b.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }));
+    if (notes.length) h += '<div class="notes">' + notes.join('') + '</div>';
+    if (plan.options.length > 1) {
+      h += '<details><summary>Other ways to pay</summary><div class="alts" style="margin-top:8px">' + plan.options.slice(1).map(function (o) {
+        return '<div><span>' + esc(o.card.short) + '</span><span>' + E.money(o.total) + ' · ' + E.pctStr(o.totalPct) + '</span></div>';
+      }).join('') + '</div></details>';
+    }
+    h += '</div></div>';
+    var deals = items.filter(usable).sort(function (a, c) { return c.a.score - a.a.score; });
+    if (deals.length) h += '<section><div class="sec-head"><h2>Deals at ' + esc(st.name) + '</h2></div><div class="list">' + deals.slice(0, 10).map(function (x) { return couponCard(x); }).join('') + '</div></section>';
+    else if (!st.pseudo) h += '<p class="count">No coupons for ' + esc(st.name) + ' right now. The card advice above still applies.</p>';
+    if (st.url) h += '<p style="margin-top:12px"><a class="btn ghost sm" href="' + esc(st.url) + '" target="_blank" rel="noopener">' + ICON.out + ' Go to ' + esc(st.name) + '</a></p>';
+    return h;
+  }
+
+  /* My list */
+  function viewList() {
+    var plan = S.settings.plan || [];
+    var h = '<header class="view-head"><h1>My list</h1><p class="sub">Things you plan to buy. The app watches for deals on them and moves matches to the top of For You.</p></header>';
+    h += '<form class="addrow" data-form="plan"><input class="input" id="planq" placeholder="A store, an item, or a type of thing" autocomplete="off"><button class="btn" type="submit">Add</button></form>';
+    var mine = plan.filter(function (p) { return p.type === 'category'; }).map(function (p) { return p.cat; });
+    h += '<div class="chips">' + E.CATEGORIES.filter(function (c) { return c.id !== 'general' && mine.indexOf(c.id) < 0; }).map(function (c) { return '<button class="chip" data-action="plan-cat" data-val="' + c.id + '">+ ' + esc(c.label) + '</button>'; }).join('') + '</div>';
+    if (!plan.length) return h + '<section>' + emptyBox('Your list is empty', ' Add something like "running shoes", "Costco" or "air fryer".') + '</section>';
+    h += '<section>';
+    plan.forEach(function (item, i) {
+      var all = S.items.filter(usable).map(function (x) { var hm = E.planMatches([item], x.rec); return hm.length ? { x: x, loose: !!hm[0].loose } : null; }).filter(Boolean);
+      var exact = all.filter(function (m) { return !m.loose; }).map(function (m) { return m.x; });
+      var loose = all.filter(function (m) { return m.loose; }).map(function (m) { return m.x; });
+      var byVal = function (a, b) { return b.a.score * E.typicalPct(b.a.terms, b.rec.d) - a.a.score * E.typicalPct(a.a.terms, a.rec.d); };
+      exact.sort(byVal); loose.sort(byVal);
+      var matches = exact.concat(loose);
+      var open = !!S.listOpen[i];
+      var label = item.type === 'category' ? (E.CAT_BY_ID[item.cat] || {}).label || item.text : item.text;
+      var top = matches[0];
+      var countTxt = exact.length ? exact.length + (exact.length === 1 ? ' match' : ' matches') + (loose.length ? ' + ' + loose.length + ' related' : '') : loose.length ? loose.length + ' related' : 'no deals yet';
+      h += '<div class="planitem"><div class="ph"><b>' + esc(label) + '</b><small>' + countTxt + '</small>' +
+        (matches.length ? '<button class="btn ghost sm" data-action="list-open" data-i="' + i + '">' + (open ? 'Hide' : 'Show') + '</button>' : '') +
+        '<button class="x" data-action="list-del" data-i="' + i + '" aria-label="Remove ' + esc(label) + '">' + ICON.close + '</button></div>';
+      if (top && !open) h += '<div class="gist" style="margin-top:6px">' + (exact.length ? 'Best now: ' : 'Related: ') + esc(top.rec.d.brand) + ', ' + esc(top.a.terms.headline || top.rec.d.title) + '</div>';
+      if (open) {
+        h += '<div class="pm">' + matches.slice(0, 8).map(function (x) { return couponCard(x); }).join('') + '</div>';
+        var b = E.brandByName(item.text);
+        if (b) h += '<p style="margin:10px 0 0"><button class="btn ghost sm" data-action="way" data-domain="' + esc(b.domain) + '">Best way to pay at ' + esc(b.name) + '</button></p>';
+      }
+      h += '</div>';
+    });
+    return h + '</section>';
+  }
+
+  /* Cards */
+  function viewCards() {
+    var on = S.settings.cards || [];
+    var h = '<header class="view-head"><h1>Your cards</h1><p class="sub">Turn on the cards you carry. The app uses them to pick the best way to pay and to stack card offers.</p></header>';
+    h += '<div class="banner" style="background:var(--info-bg);color:var(--info)">You mentioned a "Venture One X". Turn on whichever one you have: <b>VentureOne</b> (1.25 miles per $1) or <b>Venture X</b> (2 miles per $1).</div>';
+    h += '<section class="wallet">' + E.CARDS.map(function (c) {
+      var notes = E.CARD_NOTES[c.id] || [];
+      return '<div class="wcard"><div class="wh"><b>' + esc(c.name) + '</b><label class="switch"><input type="checkbox" data-change="card" data-card="' + c.id + '"' + (on.indexOf(c.id) >= 0 ? ' checked' : '') + ' aria-label="I have the ' + esc(c.name) + '"><span></span></label></div>' +
+        '<ul>' + notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul></div>';
+    }).join('') + '</section>';
+
+    // Venmo Stash
+    var st = S.settings.stash || { tier: 1, brands: [] };
+    h += '<section><div class="sec-head"><h2>Venmo Stash</h2></div><div class="panel pad">' +
+      '<div class="lbl">Your cash back level</div><div class="seg" role="group" style="margin-top:6px">' +
+      [[1, '1% base'], [2, '2% auto reload'], [5, '5% direct deposit']].map(function (t) { return '<button data-action="stash-tier" data-val="' + t[0] + '" aria-pressed="' + (st.tier === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="lbl" style="margin-top:14px">Brands in your Stash bundle</div>' +
+      '<p class="gist" style="margin:4px 0 0">Pick the brands in the bundle you chose in the Venmo app. You can swap bundles every 30 days.</p>' +
+      '<input class="input" id="stashq" style="margin-top:8px" placeholder="Find a brand" value="' + esc(S.stashQ) + '" autocomplete="off">' +
+      '<div class="brandpick" id="stashpick">' + stashChips() + '</div></div></section>';
+
+    // Card offers
+    var counts = {};
+    var lastSeen = {};
+    S.items.forEach(function (x) {
+      var d = x.rec.d;
+      var prog = d.kind === 'cardoffer' ? d.card : d.kind === 'portal' ? 'c1shopping' : d.sourceType === 'costco' ? 'costco' : null;
+      if (!prog || !usable(x)) return;
+      counts[prog] = (counts[prog] || 0) + 1;
+      if (!lastSeen[prog] || x.rec.ls > lastSeen[prog]) lastSeen[prog] = x.rec.ls;
+    });
+    var progs = [
+      ['capitalone', 'Capital One Offers', 'https://www.capitalone.com/', 'Sign in on capitalone.com in Safari, open Offers, tap View all, then tap the Deal Stack button.'],
+      ['c1shopping', 'Capital One Shopping', 'https://capitaloneshopping.com/', 'Sign in at capitaloneshopping.com in Safari, open the stores list, then tap the Deal Stack button.'],
+      ['citi', 'Citi offers (Costco Visa)', 'https://online.citi.com/', 'Sign in at citi.com in Safari, open your Merchant Offers, then tap the Deal Stack button.'],
+      ['venmo', 'Venmo offers', null, 'Venmo offers only show inside the Venmo app. Take a screenshot of the offers screen and import it below.'],
+      ['costco', 'Costco member savings', 'https://www.costco.com/', 'The collector reads these when Costco allows it. You can also open the savings page in Safari and tap the Deal Stack button.']
+    ];
+    h += '<section><div class="sec-head"><h2>Card offers</h2><span class="hint">saved from your accounts</span></div><div class="panel">' + progs.map(function (p) {
+      var n = counts[p[0]] || 0;
+      return '<div class="progrow"><div><b>' + esc(p[1]) + '</b><small>' + (n ? n + ' active · saved ' + E.agoText(E.hoursSince(lastSeen[p[0]], new Date())) : 'None saved yet') + '</small><small>' + esc(p[3]) + '</small></div>' +
+        (p[2] ? '<a class="btn ghost sm" href="' + p[2] + '" target="_blank" rel="noopener">Open</a>' : '') + '</div>';
+    }).join('') + '</div></section>';
+
+    // Screenshot import
+    h += '<section><div class="sec-head"><h2>Import a screenshot</h2></div><div class="panel pad">' +
+      '<p class="gist" style="margin:0 0 10px">For offers that only live inside an app, like Venmo. The text is read on your phone.</p>' +
+      '<div class="field"><label for="ocrprog">These offers are from</label>' + sel('ocrprog', S.ocrProgram, [['venmo', 'Venmo offers'], ['capitalone', 'Capital One Offers'], ['c1shopping', 'Capital One Shopping'], ['citi', 'Citi offers']], 'Program') + '</div>' +
+      '<label class="btn block" style="margin-top:10px">Choose screenshot<input type="file" id="ocrfile" accept="image/*" hidden></label>' +
+      '<div id="ocrout">' + ocrBlock() + '</div></div></section>';
+    return h;
+  }
+  function stashChips() {
+    var st = S.settings.stash || { brands: [] };
+    var q = S.stashQ.trim().toLowerCase();
+    var picked = st.brands || [];
+    var list = E.BRANDS.filter(function (b) { return !b.pseudo; });
+    var show = list.filter(function (b) { return picked.indexOf(b.domain) >= 0; });
+    if (q) show = show.concat(list.filter(function (b) { return picked.indexOf(b.domain) < 0 && b.name.toLowerCase().indexOf(q) >= 0; }).slice(0, 24));
+    else show = show.concat(list.filter(function (b) { return picked.indexOf(b.domain) < 0 && (b.cat === 'food' || b.cat === 'grocery' || b.domain === 'target.com' || b.domain === 'amazon.com' || b.domain === 'walmart.com'); }).slice(0, 18));
+    return show.map(function (b) { return '<button class="chip" data-action="stash-brand" data-val="' + esc(b.domain) + '" aria-pressed="' + (picked.indexOf(b.domain) >= 0) + '">' + esc(b.name) + '</button>'; }).join('') || '<span class="gist">No brands match.</span>';
+  }
+  function ocrBlock() {
+    var o = S.ocr;
+    if (!o) return '';
+    if (o.state === 'reading') return '<p class="gist" style="margin-top:12px">Reading the screenshot… this takes a few seconds the first time.</p>';
+    if (o.state === 'error') return '<p class="err" style="margin-top:12px">' + esc(o.msg) + '</p>';
+    if (o.state === 'review') {
+      if (!o.rows.length) return '<p class="err" style="margin-top:12px">No offers were found in that picture. Try a sharper screenshot of the offers list.</p>';
+      return '<div style="margin-top:12px"><div class="lbl">Check what was read, then save</div>' + o.rows.map(function (r, i) {
+        return '<div class="ocr-row"><input type="checkbox" data-change="ocr-inc" data-i="' + i + '"' + (r.include ? ' checked' : '') + ' aria-label="Include"><input class="input" data-change="ocr-name" data-i="' + i + '" value="' + esc(r.merchant) + '" aria-label="Store"><input class="input" data-change="ocr-val" data-i="' + i + '" value="' + esc(r.value) + '" aria-label="Value"></div>';
+      }).join('') + '<button class="btn block" style="margin-top:12px" data-action="ocr-save">Save ' + o.rows.filter(function (r) { return r.include; }).length + ' offers</button></div>';
+    }
+    return '';
+  }
+
+  /* ---------------- sheets ---------------- */
+  function openSheet(kind, arg) { S.sheet = { kind: kind, arg: arg, full: false }; paintSheet(); }
+  function closeSheet() { S.sheet = null; paintSheet(); }
+  function paintSheet() {
+    var host = $('#sheethost');
+    if (!host) return;
+    if (!S.sheet) { host.innerHTML = ''; document.body.style.overflow = ''; return; }
+    var body = S.sheet.kind === 'deal' ? dealSheet(S.sheet.arg) : settingsSheet();
+    host.innerHTML = '<div class="backdrop" data-action="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>' + body + '</div>';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function dealSheet(id) {
+    var x = S.byId[id];
+    if (!x) return '<p>That deal is gone.</p>';
+    var d = x.rec.d, a = x.a, p = a.terms;
+    var brand = E.brandByDomain(d.domain);
+    var storeUrl = d.kind === 'cardoffer' || d.kind === 'portal' ? ((E.PROGRAMS[d.card] || E.PROGRAMS[d.portal] || {}).url) : (brand && brand.url) || d.url;
+    var h = '<div class="sheet-head"><h3>' + esc(d.brand) + '</h3><button class="iconbtn" data-action="close" aria-label="Close">' + ICON.close + '</button></div>';
+    h += '<div class="detail-val">' + stubFor(x) + '<div style="min-width:0"><div class="ctitle" style="-webkit-line-clamp:4">' + esc(d.title) + '</div>' + (p.gist ? '<div class="gist" style="margin-top:4px">' + esc(p.gist) + '</div>' : '') + '</div></div>';
+    if (d.code) h += '<div class="codebox"><code>' + esc(d.code) + '</code><button class="btn sm" data-action="copy" data-val="' + esc(d.code) + '">' + ICON.copy + ' Copy</button></div>';
+    h += '<div class="btnrow" style="margin-top:12px">' + (storeUrl ? '<a class="btn" href="' + esc(storeUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Go to ' + esc(d.kind === 'cardoffer' || d.kind === 'portal' ? (kindWord(d) || 'site') : d.brand) + '</a>' : '') +
+      (d.sourceUrl && d.sourceUrl !== storeUrl ? '<a class="btn ghost" href="' + esc(d.sourceUrl) + '" target="_blank" rel="noopener">See the post</a>' : '') + '</div>';
+    if (d.sample) h += '<div class="banner">This is a sample deal for the preview, not a real offer.</div>';
+
+    h += '<div class="block"><h4>What you need to do</h4><ul class="bullets">' + p.bullets.map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul>';
+    if (d.terms) {
+      h += '<button class="toggle-terms" data-action="terms">' + (S.sheet.full ? 'Hide full terms' : 'More details: full terms') + '</button>';
+      if (S.sheet.full) h += '<div class="fullterms">' + esc(d.terms) + '</div>';
+    }
+    h += '</div>';
+
+    h += '<div class="block"><h4>Will it work?</h4>' + statusPill(a) + '<div class="meter" aria-hidden="true"><i style="width:' + a.score + '%"></i></div><div class="reasons">' +
+      a.reasons.map(function (r) { return '<div class="' + (r.good ? 'good' : 'bad') + '">' + esc(r.t) + '</div>'; }).join('') + '</div>';
+    h += '<div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-action="mark" data-ok="1" data-id="' + esc(id) + '">It worked</button><button class="btn ghost sm" data-action="mark" data-ok="0" data-id="' + esc(id) + '">It didn\'t work</button><button class="btn ghost sm" data-action="hide" data-id="' + esc(id) + '">Hide</button></div></div>';
+
+    if (realDomain(d.domain)) {
+      var st = E.storeFor(d.domain, (S.byDomain[d.domain] || []).map(function (y) { return y.rec; }));
+      var plan = S.stacks[d.domain];
+      if (plan && plan.best) {
+        h += '<div class="block"><h4>Best way to use it</h4><div class="gist">On a $100 order at ' + esc(st.name) + ': save <b>' + E.money(plan.best.total) + '</b> paying with your ' + esc(plan.best.card.short) + '.</div>' +
+          '<ol class="steps" style="margin-top:10px">' + plan.best.steps.map(function (s) { return '<li><span>' + esc(s) + '</span></li>'; }).join('') + '</ol>' +
+          '<button class="btn ghost sm" style="margin-top:10px" data-action="way" data-domain="' + esc(d.domain) + '">Change amount</button></div>';
+      }
+    }
+    var cat = E.CAT_BY_ID[d.cat];
+    h += '<div class="block"><h4>Details</h4><dl class="kv"><dt>Category</dt><dd>' + esc(cat ? cat.label : d.cat) + '</dd>' +
+      '<dt>Found</dt><dd>' + esc(E.fmtDay(x.rec.fs)) + (x.rec.ls && x.rec.ls !== x.rec.fs ? ', last seen ' + esc(E.agoText(E.hoursSince(x.rec.ls, new Date()))) : '') + '</dd>' +
+      (a.expires ? '<dt>Ends</dt><dd>' + esc(E.fmtDay(a.expires)) + (d.expSet ? '' : ' (estimated)') + '</dd>' : '') +
+      (d.price ? '<dt>Price</dt><dd>' + E.money(d.price) + '</dd>' : '') +
+      '<dt>Store site</dt><dd class="mono">' + esc(d.domain) + '</dd></dl></div>';
+    return h;
+  }
+
+  function settingsSheet() {
+    var hub = S.demo ? 'https://your-hub.pages.dev' : location.origin;
+    var mine = S.settings.categories || [];
+    var st = (S.raw && S.raw.status) || {};
+    var col = st.collector, gm = st.gmail;
+    var h = '<div class="sheet-head"><h3>Settings</h3><button class="iconbtn" data-action="close" aria-label="Close">' + ICON.close + '</button></div>';
+    h += '<div class="block" id="cats"><h4>Your categories</h4><p class="gist" style="margin:0 0 8px">For You leans toward these and ranks the rest lower. Leave all off to see everything equally.</p><div class="btnrow">' +
+      E.CATEGORIES.filter(function (c) { return c.id !== 'general'; }).map(function (c) { return chip('pref-cat', c.id, c.label, mine.indexOf(c.id) >= 0); }).join('') + '</div></div>';
+
+    h += '<div class="block"><h4>Your hub</h4>';
+    if (S.demo) h += '<p class="gist">This is the preview with sample deals. Once you launch your own hub, this screen connects to it.</p>';
+    else h += '<dl class="kv"><dt>Address</dt><dd class="mono">' + esc(hub) + '</dd><dt>Key</dt><dd class="mono">' + esc(S.key ? S.key.slice(0, 3) + '•••••' + S.key.slice(-3) : 'not set') + '</dd></dl>' +
+      '<div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" data-action="copy" data-val="' + esc(S.key) + '">' + ICON.copy + ' Copy key</button><button class="btn ghost sm" data-action="forget">Use a different key</button></div>';
+    h += '</div>';
+
+    var addonUrl = hub + '/install/deal-stack.user.js';
+    h += '<div class="block"><h4>Safari add-on</h4><p class="gist" style="margin:0 0 8px">Tests codes at checkout, shows the best way to pay on any store, and saves your Capital One, Citi and Costco offers.</p><ol class="steps">' +
+      '<li><span>Install the free <b>Userscripts</b> app from the App Store, open it once, then turn it on in Settings, Apps, Safari, Extensions, and allow it on all websites.</span></li>' +
+      '<li><span>Open this link in Safari: <span class="mono">' + esc(addonUrl) + '</span></span></li>' +
+      '<li><span>Tap the puzzle-piece (or aA) button in Safari\'s address bar, choose Userscripts, and tap Install.</span></li>' +
+      '<li><span>The first time it runs it asks for your key. Copy it from the Your hub section above.</span></li></ol>' +
+      (S.demo ? '' : '<div class="btnrow" style="margin-top:10px"><a class="btn ghost sm" href="' + esc(addonUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Open add-on link</a><button class="btn ghost sm" data-action="copy" data-val="' + esc(addonUrl) + '">' + ICON.copy + ' Copy link</button></div>') + '</div>';
+
+    var gmUrl = hub + '/install/gmail-scanner.gs';
+    h += '<div class="block"><h4>Gmail scanner</h4><p class="gist" style="margin:0 0 8px">Reads your promotions and card-offer emails every 6 hours and adds the codes here. It runs in your own Google account.</p>' +
+      (gm ? '<p class="gist">Last run ' + esc(E.agoText(E.hoursSince(gm.runAt, new Date()))) + ': ' + (gm.deals || 0) + ' deals from ' + (gm.messages || 0) + ' emails.</p>' : '<p class="gist">Not set up yet. The launch steps cover it.</p>') +
+      (S.demo ? '' : '<div class="btnrow"><a class="btn ghost sm" href="' + esc(gmUrl) + '" target="_blank" rel="noopener">' + ICON.out + ' Open the script</a><button class="btn ghost sm" data-action="copy" data-val="' + esc(gmUrl) + '">' + ICON.copy + ' Copy link</button></div>') + '</div>';
+
+    h += '<div class="block"><h4>Sources</h4>';
+    if (col) {
+      var details = col.details || [];
+      var blocked = details.filter(function (d) { return !d.ok; });
+      h += '<p class="gist" style="margin:0 0 8px">Last collected ' + esc(E.agoText(E.hoursSince(col.runAt, new Date()))) + '. Reached ' + col.reached + ' of ' + col.sources + ' sources and found ' + col.deals + ' deals. Stores that block automated visits are skipped, never forced.</p>';
+      if (blocked.length) h += '<details><summary>' + blocked.length + ' skipped this run</summary><div class="src-list" style="margin-top:6px">' + blocked.slice(0, 120).map(function (d) { return '<div><i></i><span>' + esc(d.name) + '<small>' + esc(d.note) + '</small></span></div>'; }).join('') + '</div></details>';
+      var okList = details.filter(function (d) { return d.ok; });
+      if (okList.length) h += '<details style="margin-top:8px"><summary>' + okList.length + ' reached</summary><div class="src-list" style="margin-top:6px">' + okList.slice(0, 200).map(function (d) { return '<div><i class="ok"></i><span>' + esc(d.name) + '<small>' + esc(d.note) + '</small></span></div>'; }).join('') + '</div></details>';
+    } else h += '<p class="gist">The collector hasn\'t reported yet. Run it from the Actions tab on GitHub.</p>';
+    h += '</div>';
+    h += '<p class="gist" style="margin-top:18px">Deal Stack ' + esc(E.VERSION) + '. Card rewards are a best guess from each card\'s published categories; the card company decides what counts.</p>';
+    return h;
+  }
+
+  /* ---------------- painting ---------------- */
+  function topbarHtml() {
+    return '<div class="topbar"><div class="logo">' + ICON.logo + '<span>Deal Stack</span></div><div class="spacer"></div>' +
+      (S.mode === 'ready' && !S.demo ? '<button class="iconbtn' + (S.busy ? ' spin' : '') + '" data-action="refresh" aria-label="Refresh deals">' + ICON.refresh + '</button>' : '') +
+      (S.mode === 'ready' ? '<button class="iconbtn" data-action="settings" aria-label="Settings">' + ICON.gear + '</button>' : '') + '</div>';
+  }
+  function paintTopbar() { var t = $('#topbar'); if (t) t.innerHTML = topbarHtml(); }
+
+  var VIEWS = { foryou: viewForYou, browse: viewBrowse, way: viewWay, list: viewList, cards: viewCards };
+
+  function render() {
+    var app = $('#app');
+    var h = '<div id="topbar">' + topbarHtml() + '</div>';
+    if (S.mode === 'loading') h += '<div class="loading">Loading your deals…</div>';
+    else if (S.mode === 'connect') h += connectView();
+    else {
+      if (S.demo) h += '<div class="banner"><b>Preview with sample deals.</b> Codes are made up. Your launched app fills this with real deals from the stores, your Gmail and your card accounts.</div>';
+      h += '<main id="view">' + VIEWS[S.tab]() + '</main>';
+    }
+    app.innerHTML = h;
+    var tb = $('#tabbar');
+    tb.hidden = S.mode !== 'ready';
+    tb.innerHTML = TABS.map(function (t) {
+      return '<button data-action="tab" data-tab="' + t.id + '"' + (S.tab === t.id ? ' aria-current="page"' : '') + '><span class="tb-ico">' + ICON[t.id] + '<span class="tb-dot"></span></span>' + esc(t.label) + '</button>';
+    }).join('');
+    paintSheet();
+  }
+
+  function connectView() {
+    return '<div class="connect"><h1>Connect your hub</h1><p>Enter the key you set as APP_KEY in Cloudflare. It stays on this phone and in your hub.</p>' +
+      '<form data-form="key" class="field"><label for="keyin">Key</label><input class="input" id="keyin" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" required>' +
+      (S.connectErr ? '<p class="err">' + esc(S.connectErr) + '</p>' : '') + '<button class="btn block" type="submit">Connect</button></form></div>';
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var t = $('#toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+
+  function copyText(text) {
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { }
+      document.body.removeChild(ta);
+      toast(ok ? 'Copied' : 'Press and hold to copy: ' + text);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Copied'); }, fallback);
+    else fallback();
+  }
+
+  /* ---------------- actions ---------------- */
+  function setTab(t) {
+    S.tab = t; store.set('tab', t); render();
+    window.scrollTo(0, 0);
+  }
+
+  function markDeal(id, ok) {
+    var x = S.byId[id];
+    if (!x) return;
+    var t = { deal_id: id, ok: ok ? 1 : 0, saved: 0, at: new Date().toISOString(), via: 'you' };
+    S.raw.tests = (S.raw.tests || []).concat([t]);
+    derive(); paintSheet(); repaintView();
+    toast(ok ? 'Marked as working' : "Marked as not working");
+    if (S.live) api('/api/tests', { method: 'POST', body: { results: [{ dealId: id, domain: x.rec.d.domain, code: x.rec.d.code, ok: !!ok, saved: 0, via: 'you' }] } });
+  }
+
+  function hideDeal(id) {
+    S.raw.deals = S.raw.deals.filter(function (r) { return r.id !== id; });
+    derive(); closeSheet(); repaintView(); toast('Hidden');
+    if (S.live) api('/api/hide', { method: 'POST', body: { id: id } });
+  }
+
+  function repaintView() { var v = $('#view'); if (v) v.innerHTML = VIEWS[S.tab](); }
+
+  function goWay(domain) {
+    S.way.domain = domain; S.way.q = ''; store.set('wayDomain', domain);
+    closeSheet();
+    if (S.tab !== 'way') { setTab('way'); return; }
+    repaintView(); window.scrollTo(0, 0);
+  }
+
+  function runOcr(file) {
+    S.ocr = { state: 'reading' }; paintOcr();
+    loadScript(OCR_URL).then(function () {
+      if (!window.Tesseract) throw new Error('reader not available');
+      return window.Tesseract.recognize(file, 'eng');
+    }).then(function (res) {
+      var found = E.parseOfferText(res && res.data ? res.data.text : '');
+      S.ocr = { state: 'review', rows: found.map(function (f) { return { merchant: f.merchant, value: f.pct ? (f.upTo ? 'up to ' : '') + f.pct + '%' : '$' + f.amt, raw: f.raw, include: true }; }) };
+      paintOcr();
+    }).catch(function () {
+      S.ocr = { state: 'error', msg: S.demo ? 'Reading screenshots works in your launched app, not in this preview.' : "Couldn't read that image. Check your connection and try a clearer screenshot." };
+      paintOcr();
+    });
+  }
+  function paintOcr() { var o = $('#ocrout'); if (o) o.innerHTML = ocrBlock(); }
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      if (document.querySelector('script[src="' + src + '"]')) return resolve();
+      var s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+    });
+  }
+  function saveOcr() {
+    var prog = S.ocrProgram;
+    var rows = (S.ocr && S.ocr.rows || []).filter(function (r) { return r.include && r.merchant; });
+    if (!rows.length) return;
+    var now = new Date();
+    var recs = rows.map(function (r) {
+      var g = E.guessDomainFromName(r.merchant) || { domain: 'deal:' + E.normName(r.merchant), brand: null };
+      var val = String(r.value || '').trim();
+      var title = /back|off/i.test(val) ? val : val + ' back';
+      return E.makeRecord({
+        domain: g.domain, brand: g.brand ? g.brand.name : r.merchant, kind: prog === 'c1shopping' ? 'portal' : 'cardoffer',
+        card: prog === 'c1shopping' ? null : prog, portal: prog === 'c1shopping' ? 'c1shopping' : null,
+        title: title, terms: r.raw || '', sourceType: 'card', sourceName: (E.PROGRAMS[prog] || {}).name, guessed: g.guessed
+      }, now);
+    });
+    if (S.live) {
+      api('/api/ingest', { method: 'POST', body: { source: 'screenshot:' + prog, deals: recs } }).then(function (j) {
+        if (j.ok) { toast('Saved ' + j.accepted + ' offers'); S.ocr = null; load(); }
+        else toast(j.error || 'Could not save.');
+      });
+    } else {
+      var nowIso = now.toISOString();
+      recs.forEach(function (r) {
+        S.raw.deals = S.raw.deals.filter(function (x) { return x.id !== r.id; });
+        S.raw.deals.push({ id: r.id, d: r.data, fs: nowIso, ls: nowIso });
+      });
+      S.ocr = null; derive(); repaintView(); toast('Saved ' + recs.length + ' offers');
+    }
+  }
+
+  document.addEventListener('click', function (ev) {
+    var el = ev.target.closest('[data-action]');
+    if (!el) {
+      if (!ev.target.closest('.picker')) { var sg = $('#waysug'); if (sg) sg.hidden = true; }
+      return;
+    }
+    var a = el.getAttribute('data-action');
+    var val = el.getAttribute('data-val');
+    switch (a) {
+      case 'tab': closeSheet(); setTab(el.getAttribute('data-tab')); break;
+      case 'deal': openSheet('deal', el.getAttribute('data-id')); break;
+      case 'close': closeSheet(); break;
+      case 'copy': copyText(val); break;
+      case 'terms': S.sheet.full = !S.sheet.full; paintSheet(); break;
+      case 'settings':
+        openSheet('settings');
+        if (el.getAttribute('data-focus')) setTimeout(function () { var c = $('#cats'); if (c) c.scrollIntoView(); }, 30);
+        break;
+      case 'refresh': if (S.live) load(true); break;
+      case 'fy-cat': S.fy.cat = val; repaintView(); break;
+      case 'br-cat':
+        if (val === 'all') S.browse.cats = [];
+        else { var i = S.browse.cats.indexOf(val); if (i >= 0) S.browse.cats.splice(i, 1); else S.browse.cats.push(val); }
+        S.browse.limit = 40; repaintView(); break;
+      case 'more': S.browse.limit += 40; $('#bresults').innerHTML = browseResults(); break;
+      case 'way': goWay(el.getAttribute('data-domain')); break;
+      case 'mark': markDeal(el.getAttribute('data-id'), el.getAttribute('data-ok') === '1'); break;
+      case 'hide': hideDeal(el.getAttribute('data-id')); break;
+      case 'pref-cat': {
+        var cs = S.settings.categories; var k = cs.indexOf(val);
+        if (k >= 0) cs.splice(k, 1); else cs.push(val);
+        saveSettings(); paintSheet(); repaintView(); break;
+      }
+      case 'plan-cat': {
+        var c = E.CAT_BY_ID[val];
+        S.settings.plan.push({ text: c.label, type: 'category', cat: val });
+        saveSettings(); repaintView(); toast('Added ' + c.label); break;
+      }
+      case 'list-open': { var n = +el.getAttribute('data-i'); S.listOpen[n] = !S.listOpen[n]; repaintView(); break; }
+      case 'list-del': {
+        var m = +el.getAttribute('data-i'); S.settings.plan.splice(m, 1); S.listOpen = {};
+        saveSettings(); repaintView(); break;
+      }
+      case 'stash-tier': S.settings.stash.tier = +val; saveSettings(); repaintView(); break;
+      case 'stash-brand': {
+        var br = S.settings.stash.brands; var j = br.indexOf(val);
+        if (j >= 0) br.splice(j, 1); else br.push(val);
+        saveSettings(); var sp = $('#stashpick'); if (sp) sp.innerHTML = stashChips(); break;
+      }
+      case 'ocr-save': saveOcr(); break;
+      case 'forget': store.del('key'); store.del('cache'); S.key = ''; S.raw = null; S.mode = 'connect'; S.connectErr = ''; closeSheet(); render(); break;
+    }
+  });
+
+  document.addEventListener('submit', function (ev) {
+    var f = ev.target.getAttribute('data-form');
+    if (!f) return;
+    ev.preventDefault();
+    if (f === 'key') {
+      var v = $('#keyin').value.trim();
+      if (!v) return;
+      S.key = v; store.set('key', v); S.connectErr = ''; S.mode = 'loading'; render(); load();
+    }
+    if (f === 'plan') {
+      var q = $('#planq').value.trim();
+      if (!q) return;
+      S.settings.plan.push({ text: q, type: 'text' });
+      saveSettings(); repaintView(); toast('Added to your list');
+    }
+  });
+
+  document.addEventListener('input', function (ev) {
+    var t = ev.target;
+    if (t.id === 'bq') { S.browse.q = t.value; S.browse.limit = 40; $('#bresults').innerHTML = browseResults(); }
+    if (t.id === 'wayq') {
+      S.way.q = t.value;
+      var sg = $('#waysug'); var list = suggestions(t.value);
+      sg.innerHTML = list.map(function (s) { return '<button data-action="way" data-domain="' + esc(s.domain) + '"><span>' + esc(s.name) + '</span><small>' + (s.n ? s.n + ' deals' : s.pseudo ? 'card advice' : 'no coupons now') + '</small></button>'; }).join('');
+      sg.hidden = !list.length;
+    }
+    if (t.id === 'wayamt') {
+      S.way.amount = Math.max(1, Number(t.value) || 0) || 100; store.set('wayAmount', S.way.amount);
+      var wp = $('#wayplan'); var st = S.way.domain ? E.storeFor(S.way.domain, (S.byDomain[S.way.domain] || []).map(function (x) { return x.rec; })) : null;
+      if (wp && st && Number(t.value) > 0) wp.innerHTML = planBlock(st);
+    }
+    if (t.id === 'stashq') { S.stashQ = t.value; var sp = $('#stashpick'); if (sp) sp.innerHTML = stashChips(); }
+    var ch = t.getAttribute('data-change');
+    if (ch && S.ocr && S.ocr.rows) {
+      var r = S.ocr.rows[+t.getAttribute('data-i')];
+      if (ch === 'ocr-name') r.merchant = t.value;
+      if (ch === 'ocr-val') r.value = t.value;
+    }
+  });
+
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t.id === 'bstatus') { S.browse.status = t.value; $('#bresults').innerHTML = browseResults(); }
+    if (t.id === 'btype') { S.browse.type = t.value; $('#bresults').innerHTML = browseResults(); }
+    if (t.id === 'bsort') { S.browse.sort = t.value; $('#bresults').innerHTML = browseResults(); }
+    if (t.id === 'ocrprog') S.ocrProgram = t.value;
+    if (t.id === 'ocrfile' && t.files && t.files[0]) runOcr(t.files[0]);
+    var ch = t.getAttribute('data-change');
+    if (ch === 'card') {
+      var id = t.getAttribute('data-card'); var cs = S.settings.cards; var i = cs.indexOf(id);
+      if (t.checked && i < 0) cs.push(id); if (!t.checked && i >= 0) cs.splice(i, 1);
+      saveSettings();
+    }
+    if (ch === 'ocr-inc') { S.ocr.rows[+t.getAttribute('data-i')].include = t.checked; var btn = $('[data-action="ocr-save"]'); if (btn) btn.textContent = 'Save ' + S.ocr.rows.filter(function (r) { return r.include; }).length + ' offers'; }
+  });
+
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && S.sheet) closeSheet(); });
+
+  /* ---------------- sample data for the preview ---------------- */
+  function sampleData(now) {
+    function md(n) { var d = new Date(now.getTime() + n * 86400000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); }
+    function ago(h) { return new Date(now.getTime() - h * 3600000).toISOString(); }
+    var rows = [
+      // From stores' own sites
+      { domain: 'nike.com', title: 'Extra 25% off sale styles with code SAMPLE25', code: 'SAMPLE25', terms: 'Nike Members only. Excludes select styles. Ends ' + md(8) + '.', sourceType: 'official', h: 30 },
+      { domain: 'target.com', title: 'Save $20 when you spend $100 on home items', terms: 'Target Circle members. In store and online. Prices as marked. Ends ' + md(6) + '.', sourceType: 'official', kind: 'sale', h: 5 },
+      { domain: 'bestbuy.com', title: 'Up to 40% off select laptops', terms: 'Prices as marked. While supplies last. Ends ' + md(5) + '.', sourceType: 'official', kind: 'sale', h: 4 },
+      { domain: 'oldnavy.gap.com', title: '40% off everything', terms: 'Prices as marked online and in stores. Today only.', sourceType: 'official', kind: 'sale', h: 3 },
+      { domain: 'ulta.com', title: '$10 off $40 with code SAMPLE10', code: 'SAMPLE10', terms: 'Valid online only. One use per customer. Exclusions apply. Ends ' + md(13) + '.', sourceType: 'official', h: 26 },
+      { domain: 'lowes.com', title: 'Save 20% on outdoor power equipment', terms: 'Select items. Through ' + md(10) + '.', sourceType: 'official', kind: 'sale', h: 8 },
+      { domain: 'sephora.com', title: '15% off your first order with code SAMPLENEW', code: 'SAMPLENEW', terms: 'New customers only. Online only.', sourceType: 'official', h: 50 },
+      { domain: 'chewy.com', title: 'Get $20 off your first order of $49+ with code SAMPLEPET', code: 'SAMPLEPET', terms: 'New customers only. Excludes gift cards. Valid thru ' + md(22) + '.', sourceType: 'official', h: 12 },
+      { domain: 'doordash.com', title: '50% off your first order, up to $15, with code SAMPLEDASH', code: 'SAMPLEDASH', terms: 'New customers only. Minimum subtotal $20. Expires ' + md(19) + '.', sourceType: 'official', h: 9 },
+      { domain: 'lululemon.com', title: 'We Made Too Much: up to 50% off', terms: 'Prices as marked. Final sale.', sourceType: 'official', kind: 'sale', h: 20 },
+      { domain: 'jcrew.com', title: '40% off full-price styles with code SAMPLEFALL', code: 'SAMPLEFALL', terms: 'Online only. Excludes sale items. Ends ' + md(2) + '.', sourceType: 'official', h: 30 },
+      { domain: 'expedia.com', title: 'Members save 10% or more on select hotels', terms: 'Must be signed in. Select hotels only.', sourceType: 'official', kind: 'sale', h: 14 },
+      { domain: 'homedepot.com', title: 'Up to 35% off select power tools', terms: 'Select items. Ends ' + md(3) + '.', sourceType: 'official', kind: 'sale', h: 7 },
+      { domain: 'starbucks.com', title: 'Half off a handcrafted drink this Thursday', terms: 'Starbucks Rewards members. Order in the app. Ends Thursday. One per member.', sourceType: 'official', kind: 'sale', h: 6 },
+      // From your Gmail
+      { domain: 'gap.com', title: 'Your code SAMPLEGAP is here: 30% off', code: 'SAMPLEGAP', terms: 'Valid through ' + md(7) + '. Online and in stores. Excludes sale items.', sourceType: 'email', h: 40 },
+      { domain: 'macys.com', title: 'Extra 20% off with code SAMPLESTAR', code: 'SAMPLESTAR', terms: 'Valid ' + md(-2) + ' - ' + md(8) + '. Exclusions apply. Not valid on Deals of the Day.', sourceType: 'email', h: 60 },
+      { domain: 'wayfair.com', title: '$25 off your order of $150+ with code SAMPLEHOME', code: 'SAMPLEHOME', terms: 'Expires ' + md(4) + '. One use per customer.', sourceType: 'email', h: 22 },
+      { domain: 'ubereats.com', title: '$10 off your next order of $25+ with code SAMPLEEATS', code: 'SAMPLEEATS', terms: 'Ends ' + md(3) + '. Delivery orders only.', sourceType: 'email', h: 18 },
+      // Posted by shoppers
+      { domain: 'amazon.com', title: 'Apple AirPods Pro 2 $169 at Amazon', terms: 'Lowest price in a while. Sold and shipped by Amazon.', sourceType: 'community', sourceName: 'Slickdeals', price: 169, kind: 'sale', h: 20, url: 'https://slickdeals.net/' },
+      { domain: 'walmart.com', title: 'Ninja 5qt Air Fryer $59 at Walmart', terms: 'Free shipping with Walmart+ or on $35+.', sourceType: 'community', sourceName: 'Slickdeals', price: 59, kind: 'sale', h: 6, url: 'https://slickdeals.net/' },
+      { domain: 'bestbuy.com', title: 'Samsung 65" QLED 4K TV $549.99 at Best Buy', terms: 'In stock for delivery.', sourceType: 'community', sourceName: 'Slickdeals', price: 549.99, kind: 'sale', h: 44, url: 'https://slickdeals.net/' },
+      { domain: 'rei.com', title: 'Hydro Flask 32oz Wide Mouth $25 + Free Shipping @ REI', terms: 'Several colors.', sourceType: 'community', sourceName: 'Slickdeals', price: 25, kind: 'sale', h: 10, url: 'https://slickdeals.net/' },
+      { domain: 'homedepot.com', title: 'DeWalt 20V Drill Kit $99 w/ code SAMPLEDRILL at Home Depot', code: 'SAMPLEDRILL', terms: 'Online only.', sourceType: 'community', sourceName: 'Slickdeals', price: 99, h: 30, url: 'https://slickdeals.net/' },
+      { domain: 'kohls.com', title: 'Take 15% off with code SAMPLEKOHL', code: 'SAMPLEKOHL', terms: 'Ends ' + md(5) + '. Excludes select brands.', sourceType: 'official', h: 4 },
+      { domain: 'steampowered.com', title: 'Steam Autumn Sale: up to 90% off games', terms: 'Prices as marked. Ends ' + md(9) + '.', sourceType: 'community', sourceName: 'Slickdeals', kind: 'sale', h: 16, url: 'https://slickdeals.net/' },
+      // From your card accounts
+      { domain: 'nike.com', kind: 'cardoffer', card: 'capitalone', title: '10% back', terms: 'Online only. Max $30 back. Expires ' + md(18) + '.', sourceType: 'card', sourceName: 'Capital One Offers', h: 30 },
+      { domain: 'bestbuy.com', kind: 'cardoffer', card: 'capitalone', title: '5% back', terms: 'Online purchases. Expires ' + md(20) + '.', sourceType: 'card', sourceName: 'Capital One Offers', h: 30 },
+      { domain: 'chipotle.com', kind: 'cardoffer', card: 'venmo', title: '10% back', terms: 'Next purchase only. Expires ' + md(8) + '.', sourceType: 'card', sourceName: 'Venmo offers', h: 48 },
+      { domain: 'doordash.com', kind: 'cardoffer', card: 'venmo', title: '15% back', terms: 'Max $10 back. Expires ' + md(12) + '.', sourceType: 'card', sourceName: 'Venmo offers', h: 48 },
+      { domain: 'target.com', kind: 'cardoffer', card: 'venmo', title: '3% back', terms: 'Online and in store.', sourceType: 'card', sourceName: 'Venmo offers', h: 48 },
+      { domain: 'wayfair.com', kind: 'cardoffer', card: 'citi', title: '$25 back when you spend $250', terms: 'One time. Expires ' + md(25) + '.', sourceType: 'card', sourceName: 'Citi offers', h: 72 },
+      { domain: 'nike.com', kind: 'portal', portal: 'c1shopping', title: '8% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
+      { domain: 'macys.com', kind: 'portal', portal: 'c1shopping', title: '6% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
+      { domain: 'sephora.com', kind: 'portal', portal: 'c1shopping', title: '4% back', terms: '', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
+      { domain: 'expedia.com', kind: 'portal', portal: 'c1shopping', title: 'Up to 6% back', terms: 'Hotels only.', sourceType: 'card', sourceName: 'Capital One Shopping', h: 30 },
+      // Costco member savings
+      { domain: 'costco.com', kind: 'sale', title: 'Kirkland Signature Paper Towels: $4 off', terms: 'Limit 2. In-warehouse and online. Valid ' + md(-11) + ' - ' + md(14), sourceType: 'costco', sourceName: 'Costco member savings', cat: 'grocery', h: 10 },
+      { domain: 'costco.com', kind: 'sale', title: 'Dyson V8 Cordless Vacuum: $100 off', terms: 'In-warehouse and online. Valid ' + md(-11) + ' - ' + md(14), sourceType: 'costco', sourceName: 'Costco member savings', cat: 'home', h: 10 },
+      { domain: 'costco.com', kind: 'sale', title: 'Apple iPad Air 11-inch: $100 off', terms: 'Online only. Valid ' + md(-11) + ' - ' + md(14), sourceType: 'costco', sourceName: 'Costco member savings', cat: 'electronics', h: 10 }
+    ];
+    var deals = [];
+    rows.forEach(function (r) {
+      var posted = ago(r.h);
+      var rec = E.makeRecord({
+        domain: r.domain, kind: r.kind || (r.code ? 'code' : 'sale'), title: r.title, code: r.code, terms: r.terms,
+        sourceType: r.sourceType, sourceName: r.sourceName, card: r.card, portal: r.portal, price: r.price, cat: r.cat,
+        sourceUrl: r.url || null, posted: posted
+      }, now);
+      rec.data.sample = true;
+      deals.push({ id: rec.id, d: rec.data, fs: posted, ls: ago(Math.min(r.h, 3)) });
+    });
+    function idOf(dom, code) { return dom + '|C:' + code; }
+    return {
+      ok: true, now: now.toISOString(), deals: deals,
+      sight: (function () { var s = {}; s[idOf('kohls.com', 'SAMPLEKOHL')] = 2; s[idOf('macys.com', 'SAMPLESTAR')] = 2; return s; })(),
+      tests: [
+        { deal_id: idOf('nike.com', 'SAMPLE25'), ok: 1, saved: 18.4, at: ago(40), via: 'addon' },
+        { deal_id: idOf('ulta.com', 'SAMPLE10'), ok: 1, saved: 10, at: ago(20), via: 'addon' },
+        { deal_id: idOf('gap.com', 'SAMPLEGAP'), ok: 1, saved: 21.9, at: ago(30), via: 'you' },
+        { deal_id: idOf('jcrew.com', 'SAMPLEFALL'), ok: 0, saved: 0, at: ago(2), via: 'addon' }
+      ],
+      settings: { cards: ['quicksilver', 'savor', 'venturex', 'costco', 'venmo'], categories: ['fashion', 'electronics', 'home'], stash: { tier: 2, brands: ['chipotle.com', 'target.com'] }, plan: [{ text: 'running shoes', type: 'text' }, { text: 'Costco', type: 'text' }, { text: 'air fryer', type: 'text' }] },
+      status: {
+        collector: { runAt: ago(2), deals: 412, sources: 254, reached: 171, details: [{ name: 'Nike', ok: true, note: 'found 2' }, { name: 'Target', ok: true, note: 'found 3' }, { name: 'Walmart', ok: false, note: 'the site showed a bot check' }, { name: 'Costco', ok: false, note: 'the site blocked automated visits (403)' }, { name: 'Slickdeals Hot Deals', ok: true, note: 'found 60' }] },
+        gmail: { runAt: ago(4), deals: 9, messages: 57 }
+      }
+    };
+  }
+
+  boot();
+})();
+
+</script>
+</body>
+</html>
